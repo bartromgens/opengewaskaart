@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -13,6 +14,8 @@ from api.management.tippecanoe import (
     prepare_tippecanoe,
     run_tippecanoe,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -42,6 +45,7 @@ class Command(BaseCommand):
         tippecanoe_path, _ = prepare_tippecanoe(self, options.get("tippecanoe"))
         bbox: Optional[Tuple[float, float, float, float]] = require_bbox(bbox_str)
         if bbox:
+            logger.info("Clipping to bounding box: %s", bbox)
             self.stdout.write(f"Clipping to bounding box: {bbox}")
 
         if output_path.exists() and not force:
@@ -50,12 +54,14 @@ class Command(BaseCommand):
             )
 
         if not input_path.exists():
+            logger.info("Input file %s not found, exporting GeoJSON from database.", input_path)
             self.stdout.write(
                 f"Input file {input_path} not found, exporting GeoJSON from database..."
             )
             try:
                 call_command("export_gewaspercelen_geojson", output=str(input_path))
             except Exception as exc:
+                logger.exception("Failed to export GeoJSON: %s", exc)
                 raise CommandError(f"Failed to export GeoJSON: {exc}") from exc
 
         if not input_path.exists():
@@ -67,6 +73,7 @@ class Command(BaseCommand):
             with input_path.open("rb") as handle:
                 for _ in ijson.items(handle, "features.item"):
                     feature_count += 1
+            logger.info("Found %d features in GeoJSON.", feature_count)
             self.stdout.write(f"Found {feature_count} features in GeoJSON")
         except ijson.JSONError as exc:
             raise CommandError(f"Invalid GeoJSON file: {exc}") from exc
@@ -78,6 +85,13 @@ class Command(BaseCommand):
 
         min_zoom = options["min_zoom"]
         max_zoom = options["max_zoom"]
+        logger.info(
+            "Converting to MBTiles: input=%s output=%s zoom=%s-%s",
+            input_path,
+            output_path,
+            min_zoom,
+            max_zoom,
+        )
         self.stdout.write(f"Converting to MBTiles (zoom {min_zoom}-{max_zoom})...")
         self.stdout.write(f"Output: {output_path.absolute()}")
 
@@ -101,6 +115,11 @@ class Command(BaseCommand):
         run_tippecanoe(tippecanoe_cmd, self.stdout)
 
         file_size = output_path.stat().st_size / (1024 * 1024)
+        logger.info(
+            "Conversion complete: %s (%.2f MB).",
+            output_path.absolute(),
+            file_size,
+        )
         self.stdout.write(
             self.style.SUCCESS(
                 f"\nConversion complete: {output_path.absolute()} ({file_size:.2f} MB)"

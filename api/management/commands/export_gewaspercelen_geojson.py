@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 
 from django.conf import settings
@@ -6,6 +7,8 @@ from django.core.management.base import BaseCommand
 
 from api.management.bbox import BBOX_ARGUMENT_HELP, filter_queryset_by_bbox, require_bbox
 from api.models import Gewasperceel
+
+logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 5000
 
@@ -67,9 +70,17 @@ class Command(BaseCommand):
 
         total_count = queryset.count()
         if total_count == 0:
+            logger.warning("No gewaspercelen found in database.")
             self.stdout.write(self.style.WARNING("No gewaspercelen found in database"))
             return
 
+        logger.info(
+            "Exporting %d parcels to %s (year=%s bbox=%s).",
+            total_count,
+            output_path,
+            year,
+            bbox,
+        )
         self.stdout.write(f"Exporting {total_count} parcels to {output_path}...")
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -101,6 +112,11 @@ class Command(BaseCommand):
 
             handle.write("\n  ]\n}\n")
 
+        logger.info(
+            "Export complete: %d features written to %s.",
+            processed,
+            output_path.absolute(),
+        )
         self.stdout.write(
             self.style.SUCCESS(
                 f"Export complete: {processed} features written to {output_path.absolute()}"

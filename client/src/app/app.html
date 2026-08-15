@@ -1,5 +1,9 @@
-<mat-toolbar color="primary">
-  <span>{{ title }}</span>
+<mat-toolbar color="primary" class="app-toolbar">
+  <a routerLink="/" class="app-title">{{ title }}</a>
+  <span class="spacer"></span>
+  @if (auth.isStaff()) {
+    <a mat-button routerLink="/logs" routerLinkActive="active-nav-link">Logs</a>
+  }
 </mat-toolbar>
 
 <main class="main-content">

@@ -1,0 +1,74 @@
+<div class="logs-wrapper">
+  <nav class="logs-nav">
+    <a mat-button routerLink="/" class="back-to-map">
+      <mat-icon>arrow_back</mat-icon>
+      Back to map
+    </a>
+    @if (username(); as name) {
+      <span class="logs-user">{{ name }}</span>
+    }
+  </nav>
+
+  <div class="logs-container">
+    <header class="logs-header">
+      <h1>Logs</h1>
+      <div class="logs-controls">
+        <mat-form-field appearance="outline">
+          <mat-label>File</mat-label>
+          <mat-select [value]="selectedFile()" (selectionChange)="onFileChange($event.value)">
+            @for (file of files(); track file.name) {
+              <mat-option [value]="file.name">{{ file.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Lines</mat-label>
+          <mat-select [value]="lineCount()" (selectionChange)="onLineCountChange($event.value)">
+            @for (count of lineOptions; track count) {
+              <mat-option [value]="count">{{ count }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-stroked-button type="button" (click)="refresh()" [disabled]="refreshing()">
+          <mat-icon>refresh</mat-icon>
+          Refresh
+        </button>
+
+        <mat-slide-toggle [checked]="autoRefresh()" (change)="onAutoRefreshChange($event)">
+          Auto-refresh
+        </mat-slide-toggle>
+      </div>
+    </header>
+
+    @if (content(); as file) {
+      <p class="logs-meta">
+        {{ formatBytes(file.size) }} · modified {{ formatModified(file.modified) }}
+        @if (file.truncated) {
+          · last {{ file.lines }} lines
+        }
+      </p>
+    }
+
+    @if (error(); as message) {
+      <p class="logs-error">{{ message }}</p>
+    }
+
+    @if (loading()) {
+      <div class="logs-loading">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+    } @else if (!files().length) {
+      <p class="logs-empty">No log files found.</p>
+    } @else {
+      <div #viewer class="logs-viewer">
+        @for (line of lines(); track $index) {
+          <div [class]="lineClass(line)">{{ line }}</div>
+        } @empty {
+          <div class="logs-empty-file">(empty)</div>
+        }
+      </div>
+    }
+  </div>
+</div>

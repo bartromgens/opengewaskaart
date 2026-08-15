@@ -82,15 +82,45 @@ python manage.py ingest_gewaspercelen \
   --bbox 155000 463000 157000 465000
 ```
 
-This example covers a small area northeast of Amersfoort. The command streams the remote GeoPackage via GDAL's `/vsicurl/` driver (no full multi-GB download), reprojects to WGS84, and stores geometry in the database. Re-running is idempotent (duplicates are skipped).
+This example covers a small area northeast of Amersfoort. Without `--gpkg`, the command streams the remote GeoPackage via GDAL's `/vsicurl/` driver (no full multi-GB download). That works well for small dev areas, but large bboxes are slow over HTTP because GeoPackage spatial indexing only performs well on a local file. Re-running is idempotent (duplicates are skipped).
 
-Utrecht province (RD New):
+For larger areas, download the GeoPackage once and pass `--gpkg`:
 
 ```bash
 python manage.py ingest_gewaspercelen \
   --year 2025 \
+  --gpkg data/gpkg/brpgewaspercelen_definitief_2025.gpkg \
   --bbox 114241 429919 171506 479588
 ```
+
+### `download_gewaspercelen_gpkg` — download the annual GeoPackage
+
+Downloads the ~2.9 GB PDOK GeoPackage to `data/gpkg/` (skipped if the file already exists with matching size):
+
+```bash
+python manage.py download_gewaspercelen_gpkg --year 2025
+```
+
+Use `--force` to re-download.
+
+### `ingest_gewaspercelen_grid` — ingest the full Netherlands
+
+Splits the Netherlands into a grid of 25 km cells and ingests each cell from a local GeoPackage. Failed cells are logged and can be retried individually. Re-running the full grid is safe (duplicates are skipped).
+
+```bash
+python manage.py download_gewaspercelen_gpkg --year 2025
+python manage.py ingest_gewaspercelen_grid \
+  --year 2025 \
+  --gpkg data/gpkg/brpgewaspercelen_definitief_2025.gpkg
+```
+
+This is a long-running batch job (likely 30–90 minutes depending on hardware). Run it in `tmux`, `screen`, or with `nohup`. Progress is written to `log/management.log`.
+
+Useful options:
+
+- `--cell-size 25000` — grid cell size in meters (default: 25000)
+- `--bbox xmin ymin xmax ymax` — limit to a sub-region in RD New coordinates
+- `--timeout 120` — per-cell ogr2ogr timeout in seconds
 
 ### `export_to_mbtiles` — generate vector tiles for the map
 
@@ -110,12 +140,21 @@ Requires tippecanoe v2.80 or newer.
 
 ## Typical workflow
 
+**Small dev area**
+
 1. **Ingest** parcel data for your area (`ingest_gewaspercelen`)
 2. **Export** to MBTiles (`export_to_mbtiles --force`)
 3. **Start** tileserver, Django, and Angular (see above)
 4. **Browse** the map at http://localhost:4200
 
-When you ingest new data or change the export area, repeat steps 1–2 and restart tileserver.
+**Full Netherlands**
+
+1. **Download** the annual GeoPackage (`download_gewaspercelen_gpkg`)
+2. **Ingest** in grid cells (`ingest_gewaspercelen_grid`)
+3. **Export** to MBTiles (`export_to_mbtiles --force --bbox netherlands`)
+4. **Start** services and browse the map
+
+When you ingest new data or change the export area, repeat the ingest and export steps and restart tileserver.
 
 ## Map behaviour
 

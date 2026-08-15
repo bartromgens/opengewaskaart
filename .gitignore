@@ -14,6 +14,7 @@ build/
 
 # Django
 *.log
+log/
 local_settings.py
 config/settings_local.py
 db.sqlite3
