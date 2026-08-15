@@ -1,0 +1,10 @@
+<div class="map-layout">
+  <div #mapContainer class="map-container"></div>
+
+  @if (apiStatus(); as status) {
+    <div class="health-badge" [class.error]="status === 'error'">
+      <mat-icon>{{ status === 'ok' ? 'check_circle' : 'error' }}</mat-icon>
+      API: {{ status === 'ok' ? 'verbonden' : 'niet bereikbaar' }}
+    </div>
+  }
+</div>
