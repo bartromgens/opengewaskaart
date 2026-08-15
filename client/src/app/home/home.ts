@@ -1,4 +1,6 @@
+import { Location } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Map, NavigationControl, type MapLayerMouseEvent } from 'maplibre-gl';
 
@@ -15,6 +17,7 @@ const PERCELEN_OUTLINE_LAYER = 'percelen-outline';
 const DEFAULT_TILE_MIN_ZOOM = 5;
 const DEFAULT_TILE_MAX_ZOOM = 16;
 const DEFAULT_MAP_ZOOM = 7;
+const DEFAULT_CENTER: [number, number] = [5.3, 52.2];
 
 interface TileJson {
   minzoom?: number;
@@ -33,6 +36,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
 
   private api = inject(ApiService);
+  private location = inject(Location);
+  private route = inject(ActivatedRoute);
 
   map: Map | null = null;
   apiStatus = signal<string | null>(null);
@@ -66,16 +71,19 @@ export class HomeComponent implements OnInit, OnDestroy {
   private async initMap(): Promise<void> {
     await this.loadTileZoomRange();
 
+    const { center, zoom } = this.getInitialMapState();
+
     this.map = new Map({
       container: this.mapContainer.nativeElement,
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-      center: [5.3, 52.2],
-      zoom: DEFAULT_MAP_ZOOM,
+      center,
+      zoom: Math.max(this.tileMinZoom, Math.min(this.tileMaxZoom, zoom)),
       minZoom: this.tileMinZoom,
     });
 
     this.map.addControl(new NavigationControl(), 'top-right');
     this.map.on('load', () => this.addParcelLayers());
+    this.map.on('moveend', () => this.updateUrlFromMap());
     this.map.on('click', PERCELEN_FILL_LAYER, (event) => this.onParcelClick(event));
     this.map.on('mouseenter', PERCELEN_FILL_LAYER, () => {
       if (this.map) {
@@ -275,5 +283,42 @@ export class HomeComponent implements OnInit, OnDestroy {
       next: (response) => this.apiStatus.set(response.status),
       error: () => this.apiStatus.set('error'),
     });
+  }
+
+  private getInitialMapState(): { center: [number, number]; zoom: number } {
+    const params = this.route.snapshot.queryParamMap;
+    const lat = params.get('lat');
+    const lng = params.get('lng');
+    const zoom = params.get('zoom');
+
+    const lngValue =
+      lng != null && !Number.isNaN(Number(lng)) ? Number(lng) : DEFAULT_CENTER[0];
+    const latValue =
+      lat != null && !Number.isNaN(Number(lat)) ? Number(lat) : DEFAULT_CENTER[1];
+    const zoomValue =
+      zoom != null && !Number.isNaN(Number(zoom)) ? Number(zoom) : DEFAULT_MAP_ZOOM;
+
+    return {
+      center: [lngValue, latValue],
+      zoom: zoomValue,
+    };
+  }
+
+  private updateUrlFromMap(): void {
+    if (!this.map) {
+      return;
+    }
+
+    const center = this.map.getCenter();
+    const zoom = this.map.getZoom();
+    this.location.replaceState('/', this.buildQueryString(center.lng, center.lat, zoom));
+  }
+
+  private buildQueryString(lng: number, lat: number, zoom: number): string {
+    const params = new URLSearchParams();
+    params.set('lat', lat.toFixed(5));
+    params.set('lng', lng.toFixed(5));
+    params.set('zoom', String(zoom));
+    return params.toString();
   }
 }
