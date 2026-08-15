@@ -133,6 +133,7 @@ python manage.py export_to_mbtiles --force
 Useful options:
 
 - `--year 2025` — export a single reference year
+- `--bbox utrecht` — Utrecht province (dev default area)
 - `--bbox netherlands` or `--bbox min_lon,min_lat,max_lon,max_lat` — limit export area (WGS84)
 - `--force` — overwrite existing MBTiles file
 
@@ -143,7 +144,7 @@ Requires tippecanoe v2.80 or newer.
 **Small dev area**
 
 1. **Ingest** parcel data for your area (`ingest_gewaspercelen`)
-2. **Export** to MBTiles (`export_to_mbtiles --force`)
+2. **Export** to MBTiles (`export_to_mbtiles --force --bbox utrecht`)
 3. **Start** tileserver, Django, and Angular (see above)
 4. **Browse** the map at http://localhost:4200
 

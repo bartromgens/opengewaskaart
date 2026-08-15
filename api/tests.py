@@ -1,15 +1,55 @@
 import json
+from io import StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
 from api.models import Gewasperceel
+from api.management.bbox import parse_bbox
+from api.management.commands.geojson_to_mbtiles import validate_geojson_has_features
+from api.management.commands.export_gewaspercelen_geojson import EXCLUDED_MBTILES_CATEGORIES
 from api.management.tippecanoe import (
+    build_tippecanoe_command,
     ensure_min_tippecanoe_version,
     format_version,
     parse_tippecanoe_version,
 )
+
+
+class BboxTests(TestCase):
+    def test_utrecht_bbox(self) -> None:
+        bbox = parse_bbox("utrecht")
+        self.assertEqual(bbox, (4.792, 51.858, 5.627, 52.302))
+
+
+class GeojsonValidationTests(TestCase):
+    def test_validate_geojson_has_features_accepts_non_empty_file(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "input.geojson"
+            path.write_text(
+                '{"type":"FeatureCollection","features":[{"type":"Feature","geometry":null,"properties":{}}]}',
+                encoding="utf-8",
+            )
+            validate_geojson_has_features(path)
+
+    def test_validate_geojson_has_features_rejects_empty_file(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "empty.geojson"
+            path.write_text('{"type":"FeatureCollection","features":[]}', encoding="utf-8")
+            with self.assertRaises(CommandError):
+                validate_geojson_has_features(path)
+
+    def test_validate_geojson_has_features_rejects_invalid_json(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "invalid.geojson"
+            path.write_text("{not json", encoding="utf-8")
+            with self.assertRaises(CommandError):
+                validate_geojson_has_features(path)
 
 
 class TippecanoeVersionTests(TestCase):
@@ -31,14 +71,80 @@ class TippecanoeVersionTests(TestCase):
     def test_ensure_min_tippecanoe_version_rejects_old(self) -> None:
         from unittest.mock import patch
 
-        from django.core.management.base import CommandError
-
         with patch(
             "api.management.tippecanoe.get_tippecanoe_version",
             return_value=(2, 79, 0),
         ):
             with self.assertRaises(CommandError):
                 ensure_min_tippecanoe_version("/tmp/tippecanoe", (2, 80, 0))
+
+
+class TippecanoeCommandTests(TestCase):
+    def test_build_tippecanoe_command_omits_drop_flags_by_default(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "input.geojson"
+            output_path = Path(tmpdir) / "output.mbtiles"
+            input_path.write_text('{"type":"FeatureCollection","features":[]}', encoding="utf-8")
+
+            command = build_tippecanoe_command(
+                tippecanoe_path="/usr/bin/tippecanoe",
+                input_path=input_path,
+                output_path=output_path,
+                layer_name="percelen",
+                min_zoom=5,
+                max_zoom=16,
+                maximum_tile_bytes=2_000_000,
+                maximum_tile_features=1_000_000,
+                full_detail=12,
+                low_detail=12,
+                minimum_detail=9,
+                simplification=15,
+                coalesce_densest=False,
+                drop_densest=False,
+                drop_smallest=False,
+                drop_fraction=True,
+                bbox=None,
+                force=False,
+            )
+
+        self.assertIn("--minimum-detail", command)
+        self.assertIn("9", command)
+        self.assertIn("--maximum-tile-features", command)
+        self.assertIn("1000000", command)
+        self.assertIn("--drop-fraction-as-needed", command)
+        self.assertNotIn("--coalesce-densest-as-needed", command)
+        self.assertNotIn("--drop-densest-as-needed", command)
+        self.assertNotIn("--drop-smallest-as-needed", command)
+
+    def test_build_tippecanoe_command_can_enable_coalesce(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "input.geojson"
+            output_path = Path(tmpdir) / "output.mbtiles"
+            input_path.write_text('{"type":"FeatureCollection","features":[]}', encoding="utf-8")
+
+            command = build_tippecanoe_command(
+                tippecanoe_path="/usr/bin/tippecanoe",
+                input_path=input_path,
+                output_path=output_path,
+                layer_name="percelen",
+                min_zoom=5,
+                max_zoom=16,
+                maximum_tile_bytes=2_000_000,
+                maximum_tile_features=1_000_000,
+                full_detail=12,
+                low_detail=12,
+                minimum_detail=9,
+                simplification=15,
+                coalesce_densest=True,
+                drop_densest=False,
+                drop_smallest=False,
+                drop_fraction=False,
+                bbox=None,
+                force=False,
+            )
+
+        self.assertIn("--coalesce-densest-as-needed", command)
+        self.assertNotIn("--drop-densest-as-needed", command)
 
 
 class GewasperceelDetailViewTests(TestCase):
@@ -76,3 +182,54 @@ class GewasperceelDetailViewTests(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 404)
+
+
+class ExportGewaspercelenGeojsonTests(TestCase):
+    def setUp(self) -> None:
+        self.geometry = json.dumps(
+            {
+                "type": "Polygon",
+                "coordinates": [[[5.3, 52.2], [5.31, 52.2], [5.31, 52.21], [5.3, 52.21], [5.3, 52.2]]],
+            }
+        )
+        self.common = {
+            "jaar": 2025,
+            "status": "Definitief",
+            "geometry": self.geometry,
+            "min_lon": 5.3,
+            "min_lat": 52.2,
+            "max_lon": 5.31,
+            "max_lat": 52.21,
+        }
+        Gewasperceel.objects.create(
+            gewascode=201,
+            gewas="Wintertarwe",
+            category="Granen",
+            geometry_hash="granen1",
+            **self.common,
+        )
+        Gewasperceel.objects.create(
+            gewascode=901,
+            gewas="Houtwal",
+            category="Landschapselement",
+            geometry_hash="landschap1",
+            **self.common,
+        )
+
+    def test_excludes_landschapselement_from_export(self) -> None:
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as tmpdir:
+            output_path = f"{tmpdir}/export.geojson"
+            call_command(
+                "export_gewaspercelen_geojson",
+                output=output_path,
+                stdout=StringIO(),
+            )
+            payload = json.loads(open(output_path, encoding="utf-8").read())
+
+        categories = {feature["properties"]["category"] for feature in payload["features"]}
+        self.assertEqual(len(payload["features"]), 1)
+        self.assertIn("Granen", categories)
+        self.assertNotIn("Landschapselement", categories)
+        self.assertIn("Landschapselement", EXCLUDED_MBTILES_CATEGORIES)

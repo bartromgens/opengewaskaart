@@ -121,8 +121,23 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-VECTOR_TILE_MIN_ZOOM = 8
+VECTOR_TILE_MIN_ZOOM = 5
 VECTOR_TILE_MAX_ZOOM = 16
+VECTOR_TILE_MAX_BYTES = 2_000_000
+VECTOR_TILE_MAX_FEATURES = 1_000_000
+# Coordinate precision: full detail at max zoom, lower precision at overview zooms.
+VECTOR_TILE_FULL_DETAIL = 12
+VECTOR_TILE_LOW_DETAIL = 12
+VECTOR_TILE_MINIMUM_DETAIL = 9
+# Higher values simplify low-zoom geometry more aggressively before dropping features.
+VECTOR_TILE_SIMPLIFICATION = 15
+# Tippecanoe runs coalesce/drop-*-as-needed BEFORE reducing detail. Keep these off
+# so oversized tiles step down through minimum-detail first.
+VECTOR_TILE_COALESCE_DENSEST = False
+VECTOR_TILE_DROP_DENSEST = False
+VECTOR_TILE_DROP_SMALLEST = False
+# Drop a fraction of features when a tile exceeds the feature count limit.
+VECTOR_TILE_DROP_FRACTION = True
 TIPPECANOE_PATH = ""
 TIPPECANOE_MIN_VERSION = (2, 80, 0)
 

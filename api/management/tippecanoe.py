@@ -1,5 +1,6 @@
 import re
 import subprocess
+from argparse import BooleanOptionalAction
 from pathlib import Path
 from typing import Any, Iterable, Optional, Tuple
 
@@ -26,11 +27,16 @@ MBTILES_CONVERSION_OPTION_KEYS = (
     "layer_name",
     "force",
     "maximum_tile_bytes",
+    "maximum_tile_features",
+    "full_detail",
     "low_detail",
     "minimum_detail",
     "simplification",
-    "no_coalesce",
-    "no_drop_smallest",
+    "coalesce_densest",
+    "drop_densest",
+    "drop_smallest",
+    "drop_fraction",
+    "limit_tile_feature_count",
     "bbox",
     "tippecanoe",
 )
@@ -151,40 +157,109 @@ def add_mbtiles_conversion_arguments(parser) -> None:
     parser.add_argument(
         "--maximum-tile-bytes",
         type=int,
-        default=300_000,
+        default=getattr(settings, "VECTOR_TILE_MAX_BYTES", 2_000_000),
         metavar="BYTES",
-        help="Max size per tile in bytes (default: 300000).",
+        help=(
+            "Max size per tile in bytes "
+            f"(default: {getattr(settings, 'VECTOR_TILE_MAX_BYTES', 2_000_000)})."
+        ),
+    )
+    parser.add_argument(
+        "--maximum-tile-features",
+        type=int,
+        default=getattr(settings, "VECTOR_TILE_MAX_FEATURES", 1_000_000),
+        metavar="COUNT",
+        help=(
+            "Max features per tile "
+            f"(default: {getattr(settings, 'VECTOR_TILE_MAX_FEATURES', 1_000_000)}; "
+            "tippecanoe default is 200000)."
+        ),
+    )
+    parser.add_argument(
+        "--full-detail",
+        type=int,
+        default=getattr(settings, "VECTOR_TILE_FULL_DETAIL", 12),
+        metavar="DETAIL",
+        help=(
+            "Detail at max zoom level "
+            f"(default: {getattr(settings, 'VECTOR_TILE_FULL_DETAIL', 12)})."
+        ),
     )
     parser.add_argument(
         "--low-detail",
         type=int,
-        default=12,
+        default=getattr(settings, "VECTOR_TILE_LOW_DETAIL", 12),
         metavar="DETAIL",
-        help="Detail at zoom levels below max zoom (default: 12).",
+        help=(
+            "Detail at zoom levels below max zoom "
+            f"(default: {getattr(settings, 'VECTOR_TILE_LOW_DETAIL', 12)})."
+        ),
     )
     parser.add_argument(
         "--minimum-detail",
         type=int,
-        default=6,
+        default=getattr(settings, "VECTOR_TILE_MINIMUM_DETAIL", 9),
         metavar="DETAIL",
-        help="Minimum detail when a tile exceeds size limit (default: 6).",
+        help=(
+            "Lowest detail to try before dropping features "
+            f"(default: {getattr(settings, 'VECTOR_TILE_MINIMUM_DETAIL', 9)})."
+        ),
     )
     parser.add_argument(
         "--simplification",
         type=float,
-        default=30.0,
+        default=getattr(settings, "VECTOR_TILE_SIMPLIFICATION", 15),
         metavar="SCALE",
-        help="Simplification scale multiplier (default: 30.0).",
+        help=(
+            "Simplification scale multiplier "
+            f"(default: {getattr(settings, 'VECTOR_TILE_SIMPLIFICATION', 15)})."
+        ),
     )
     parser.add_argument(
-        "--no-coalesce",
-        action="store_true",
-        help="Use --drop-densest-as-needed instead of --coalesce-densest-as-needed.",
+        "--coalesce-densest-as-needed",
+        action=BooleanOptionalAction,
+        default=getattr(settings, "VECTOR_TILE_COALESCE_DENSEST", False),
+        help=(
+            "Merge dense features when tiles exceed size limits "
+            "(runs before detail reduction; default: disabled)."
+        ),
     )
     parser.add_argument(
-        "--no-drop-smallest",
-        action="store_true",
-        help="Don't use --drop-smallest-as-needed.",
+        "--drop-densest-as-needed",
+        action=BooleanOptionalAction,
+        default=getattr(settings, "VECTOR_TILE_DROP_DENSEST", False),
+        help=(
+            "Drop densest features when tiles exceed size limits "
+            "(runs before detail reduction; default: disabled)."
+        ),
+    )
+    parser.add_argument(
+        "--drop-smallest-as-needed",
+        action=BooleanOptionalAction,
+        default=getattr(settings, "VECTOR_TILE_DROP_SMALLEST", False),
+        help=(
+            "Drop smallest features when tiles exceed size limits "
+            "(runs before detail reduction; default: disabled)."
+        ),
+    )
+    parser.add_argument(
+        "--drop-fraction-as-needed",
+        action=BooleanOptionalAction,
+        default=getattr(settings, "VECTOR_TILE_DROP_FRACTION", True),
+        help=(
+            "Drop a fraction of features when tiles exceed the feature count limit "
+            "(default: enabled)."
+        ),
+    )
+    parser.add_argument(
+        "--limit-tile-feature-count",
+        type=int,
+        default=0,
+        metavar="COUNT",
+        help=(
+            "Cap features per tile directly instead of tippecanoe's iterative "
+            "sparsest-percentage search (0 disables, default: 0)."
+        ),
     )
     parser.add_argument(
         "--bbox",
@@ -213,12 +288,17 @@ def build_tippecanoe_command(
     layer_name: str,
     min_zoom: int,
     max_zoom: int,
-    maximum_tile_bytes: int,
+    maximum_tile_bytes: Optional[int],
+    maximum_tile_features: Optional[int],
+    full_detail: int,
     low_detail: int,
     minimum_detail: int,
     simplification: float,
-    coalesce: bool,
+    coalesce_densest: bool,
+    drop_densest: bool,
     drop_smallest: bool,
+    drop_fraction: bool,
+    limit_tile_feature_count: int = 0,
     bbox: Optional[Tuple[float, float, float, float]],
     force: bool,
 ) -> list[str]:
@@ -232,8 +312,8 @@ def build_tippecanoe_command(
         str(min_zoom),
         "--maximum-zoom",
         str(max_zoom),
-        "--maximum-tile-bytes",
-        str(maximum_tile_bytes),
+        "--full-detail",
+        str(full_detail),
         "--low-detail",
         str(low_detail),
         "--minimum-detail",
@@ -241,16 +321,34 @@ def build_tippecanoe_command(
         "--use-attribute-for-id=id",
     ]
 
+    if maximum_tile_bytes is not None:
+        tippecanoe_cmd.extend(
+            ["--maximum-tile-bytes", str(maximum_tile_bytes)]
+        )
+
+    if maximum_tile_features is not None:
+        tippecanoe_cmd.extend(
+            ["--maximum-tile-features", str(maximum_tile_features)]
+        )
+
     if simplification != 1.0:
         tippecanoe_cmd.extend(["--simplification", str(simplification)])
 
-    if coalesce:
+    if coalesce_densest:
         tippecanoe_cmd.append("--coalesce-densest-as-needed")
-    else:
+    elif drop_densest:
         tippecanoe_cmd.append("--drop-densest-as-needed")
 
     if drop_smallest:
         tippecanoe_cmd.append("--drop-smallest-as-needed")
+
+    if drop_fraction:
+        tippecanoe_cmd.append("--drop-fraction-as-needed")
+
+    if limit_tile_feature_count > 0:
+        tippecanoe_cmd.extend(
+            ["--limit-tile-feature-count", str(limit_tile_feature_count)]
+        )
 
     if bbox:
         min_lon, min_lat, max_lon, max_lat = bbox

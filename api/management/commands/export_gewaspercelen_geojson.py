@@ -11,6 +11,7 @@ from api.models import Gewasperceel
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 5000
+EXCLUDED_MBTILES_CATEGORIES = ("Landschapselement",)
 
 
 def feature_from_row(row: Gewasperceel) -> dict:
@@ -60,6 +61,11 @@ class Command(BaseCommand):
         bbox = require_bbox(bbox_str)
 
         queryset = Gewasperceel.objects.all().order_by("id")
+        if EXCLUDED_MBTILES_CATEGORIES:
+            queryset = queryset.exclude(category__in=EXCLUDED_MBTILES_CATEGORIES)
+            self.stdout.write(
+                f"Excluding categories: {', '.join(EXCLUDED_MBTILES_CATEGORIES)}"
+            )
         if year is not None:
             queryset = queryset.filter(jaar=year)
         if bbox:
@@ -75,11 +81,12 @@ class Command(BaseCommand):
             return
 
         logger.info(
-            "Exporting %d parcels to %s (year=%s bbox=%s).",
+            "Exporting %d parcels to %s (year=%s bbox=%s excluded=%s).",
             total_count,
             output_path,
             year,
             bbox,
+            EXCLUDED_MBTILES_CATEGORIES,
         )
         self.stdout.write(f"Exporting {total_count} parcels to {output_path}...")
         output_path.parent.mkdir(parents=True, exist_ok=True)

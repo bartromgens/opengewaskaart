@@ -12,6 +12,17 @@ const PERCELEN_LAYER = 'percelen';
 const PERCELEN_FILL_LAYER = 'percelen-fill';
 const PERCELEN_OUTLINE_LAYER = 'percelen-outline';
 
+const DEFAULT_TILE_MIN_ZOOM = 5;
+const DEFAULT_TILE_MAX_ZOOM = 16;
+const DEFAULT_MAP_ZOOM = 7;
+
+interface TileJson {
+  minzoom?: number;
+  maxzoom?: number;
+  tiles?: string[];
+  bounds?: [number, number, number, number];
+}
+
 @Component({
   selector: 'app-home',
   imports: [MatIconModule, PerceelDetailPanelComponent],
@@ -31,9 +42,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private selectedFeatureId: number | null = null;
   private parcelLayersAdded = false;
+  private tileMinZoom = DEFAULT_TILE_MIN_ZOOM;
+  private tileMaxZoom = DEFAULT_TILE_MAX_ZOOM;
+  private tileJsonTiles: string[] | null = null;
+  private tileJsonBounds: [number, number, number, number] | undefined;
 
   ngOnInit(): void {
-    this.initMap();
+    void this.initMap();
     this.loadHealth();
   }
 
@@ -48,12 +63,15 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.parcelLoading.set(false);
   }
 
-  private initMap(): void {
+  private async initMap(): Promise<void> {
+    await this.loadTileZoomRange();
+
     this.map = new Map({
       container: this.mapContainer.nativeElement,
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       center: [5.3, 52.2],
-      zoom: 7,
+      zoom: DEFAULT_MAP_ZOOM,
+      minZoom: this.tileMinZoom,
     });
 
     this.map.addControl(new NavigationControl(), 'top-right');
@@ -84,10 +102,31 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.map.addSource(PERCELEN_SOURCE, {
+    const sourceSpec: {
+      type: 'vector';
+      minzoom: number;
+      maxzoom: number;
+      url?: string;
+      tiles?: string[];
+      bounds?: [number, number, number, number];
+    } = {
       type: 'vector',
-      url: environment.tilesUrl,
-    });
+      // Keep source minzoom at 0 so MapLibre requests tiles for the current map
+      // zoom and can substitute loaded child tiles when zoomed out below the tile set minimum.
+      minzoom: 0,
+      maxzoom: this.tileMaxZoom,
+    };
+
+    if (this.tileJsonTiles?.length) {
+      sourceSpec.tiles = this.tileJsonTiles;
+      if (this.tileJsonBounds) {
+        sourceSpec.bounds = this.tileJsonBounds;
+      }
+    } else {
+      sourceSpec.url = environment.tilesUrl;
+    }
+
+    this.map.addSource(PERCELEN_SOURCE, sourceSpec);
 
     this.map.addLayer({
       id: PERCELEN_FILL_LAYER,
@@ -204,6 +243,31 @@ export class HomeComponent implements OnInit, OnDestroy {
       );
     }
     this.selectedFeatureId = null;
+  }
+
+  private async loadTileZoomRange(): Promise<void> {
+    try {
+      const response = await fetch(environment.tilesUrl);
+      if (!response.ok) {
+        return;
+      }
+
+      const tilejson = (await response.json()) as TileJson;
+      if (typeof tilejson.minzoom === 'number') {
+        this.tileMinZoom = tilejson.minzoom;
+      }
+      if (typeof tilejson.maxzoom === 'number') {
+        this.tileMaxZoom = tilejson.maxzoom;
+      }
+      if (Array.isArray(tilejson.tiles) && tilejson.tiles.length > 0) {
+        this.tileJsonTiles = tilejson.tiles;
+      }
+      if (Array.isArray(tilejson.bounds) && tilejson.bounds.length === 4) {
+        this.tileJsonBounds = tilejson.bounds as [number, number, number, number];
+      }
+    } catch {
+      // Keep defaults when TileJSON is unavailable during startup.
+    }
   }
 
   private loadHealth(): void {

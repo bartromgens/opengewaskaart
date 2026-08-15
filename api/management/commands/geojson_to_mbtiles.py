@@ -18,6 +18,20 @@ from api.management.tippecanoe import (
 logger = logging.getLogger(__name__)
 
 
+def validate_geojson_has_features(input_path: Path) -> None:
+    """Stream-parse GeoJSON and fail fast if the file is invalid or empty."""
+    try:
+        with input_path.open("rb") as handle:
+            for _ in ijson.items(handle, "features.item"):
+                return
+    except ijson.JSONError as exc:
+        raise CommandError(f"Invalid GeoJSON file: {exc}") from exc
+    except OSError as exc:
+        raise CommandError(f"Error reading GeoJSON file: {exc}") from exc
+
+    raise CommandError("GeoJSON file contains no features")
+
+
 class Command(BaseCommand):
     help = "Convert Gewaspercelen GeoJSON to MBTiles format for tileserver-gl."
 
@@ -33,6 +47,11 @@ class Command(BaseCommand):
             type=str,
             default=str(settings.BASE_DIR / "data" / "gewaspercelen.mbtiles"),
             help="Output MBTiles file path (default: data/gewaspercelen.mbtiles)",
+        )
+        parser.add_argument(
+            "--skip-input-validation",
+            action="store_true",
+            help="Skip GeoJSON validation (e.g. when the file was just exported).",
         )
         add_mbtiles_conversion_arguments(parser)
 
@@ -63,25 +82,16 @@ class Command(BaseCommand):
             except Exception as exc:
                 logger.exception("Failed to export GeoJSON: %s", exc)
                 raise CommandError(f"Failed to export GeoJSON: {exc}") from exc
+            options["skip_input_validation"] = True
 
         if not input_path.exists():
             raise CommandError(f"Input file {input_path} does not exist")
 
-        self.stdout.write(f"Counting features in {input_path}...")
-        try:
-            feature_count = 0
-            with input_path.open("rb") as handle:
-                for _ in ijson.items(handle, "features.item"):
-                    feature_count += 1
-            logger.info("Found %d features in GeoJSON.", feature_count)
-            self.stdout.write(f"Found {feature_count} features in GeoJSON")
-        except ijson.JSONError as exc:
-            raise CommandError(f"Invalid GeoJSON file: {exc}") from exc
-        except Exception as exc:
-            raise CommandError(f"Error reading GeoJSON file: {exc}") from exc
-
-        if feature_count == 0:
-            raise CommandError("GeoJSON file contains no features")
+        if not options["skip_input_validation"]:
+            self.stdout.write(f"Validating GeoJSON input: {input_path}...")
+            validate_geojson_has_features(input_path)
+            logger.info("GeoJSON input validated: %s", input_path)
+            self.stdout.write("GeoJSON input validated")
 
         min_zoom = options["min_zoom"]
         max_zoom = options["max_zoom"]
@@ -104,11 +114,16 @@ class Command(BaseCommand):
             min_zoom=min_zoom,
             max_zoom=max_zoom,
             maximum_tile_bytes=options["maximum_tile_bytes"],
+            maximum_tile_features=options["maximum_tile_features"],
+            full_detail=options["full_detail"],
             low_detail=options["low_detail"],
             minimum_detail=options["minimum_detail"],
             simplification=options["simplification"],
-            coalesce=not options["no_coalesce"],
-            drop_smallest=not options["no_drop_smallest"],
+            coalesce_densest=options["coalesce_densest_as_needed"],
+            drop_densest=options["drop_densest_as_needed"],
+            drop_smallest=options["drop_smallest_as_needed"],
+            drop_fraction=options["drop_fraction_as_needed"],
+            limit_tile_feature_count=options["limit_tile_feature_count"],
             bbox=bbox,
             force=force,
         )

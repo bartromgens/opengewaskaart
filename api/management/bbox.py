@@ -4,6 +4,8 @@ from django.core.management.base import CommandError
 
 REGION_BBOXES: dict[str, Tuple[float, float, float, float]] = {
     "netherlands": (3.2, 50.75, 7.2, 53.7),
+    # Utrecht province (WGS84); use with export_to_mbtiles --bbox utrecht for dev.
+    "utrecht": (4.792, 51.858, 5.627, 52.302),
 }
 
 BBOX_ARGUMENT_HELP = (
