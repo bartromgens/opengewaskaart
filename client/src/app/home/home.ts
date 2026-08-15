@@ -150,13 +150,30 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     event.preventDefault();
     this.selectFeature(parcelId);
-    this.loadParcelDetail(parcelId);
+    this.loadParcelDetail(parcelId, feature?.properties);
   }
 
-  private loadParcelDetail(parcelId: number): void {
+  private loadParcelDetail(
+    parcelId: number,
+    tileProperties?: Record<string, unknown>,
+  ): void {
     this.parcelLoading.set(true);
     this.parcelError.set(null);
-    this.selectedParcel.set(null);
+
+    const tileGewas = tileProperties?.['gewas'];
+    if (typeof tileGewas === 'string' && tileGewas.length > 0) {
+      this.selectedParcel.set({
+        id: parcelId,
+        jaar: Number(tileProperties?.['jaar'] ?? 0),
+        gewascode: Number(tileProperties?.['gewascode'] ?? 0),
+        gewas: tileGewas,
+        category: String(tileProperties?.['category'] ?? ''),
+        status: String(tileProperties?.['status'] ?? ''),
+        geometry: { type: 'Polygon', coordinates: [] },
+      });
+    } else {
+      this.selectedParcel.set(null);
+    }
 
     this.api.getParcel(parcelId).subscribe({
       next: (parcel) => {
