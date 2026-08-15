@@ -120,7 +120,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 VECTOR_TILE_MIN_ZOOM = 8
 VECTOR_TILE_MAX_ZOOM = 16
-TIPPECANOE_PATH = str(Path.home() / "bin" / "tippecanoe" / "tippecanoe")
+TIPPECANOE_PATH = ""
 TIPPECANOE_MIN_VERSION = (2, 80, 0)
 
 REST_FRAMEWORK = {
