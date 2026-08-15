@@ -1,3 +1,7 @@
 DEBUG = True
 SECRET_KEY = "change-me-to-a-random-secret-key"
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+
+# Path to tippecanoe binary (used by export_to_mbtiles / geojson_to_mbtiles).
+# Defaults to ~/bin/tippecanoe/tippecanoe in config/settings.py; override here if needed.
+# TIPPECANOE_PATH = "~/bin/tippecanoe/tippecanoe"

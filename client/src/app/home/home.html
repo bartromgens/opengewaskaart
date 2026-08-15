@@ -1,6 +1,15 @@
 <div class="map-layout">
   <div #mapContainer class="map-container"></div>
 
+  @if (parcelLoading() || selectedParcel() || parcelError()) {
+    <app-perceel-detail-panel
+      [perceel]="selectedParcel()"
+      [loading]="parcelLoading()"
+      [error]="parcelError()"
+      (closed)="closeDetailPanel()"
+    />
+  }
+
   @if (apiStatus(); as status) {
     <div class="health-badge" [class.error]="status === 'error'">
       <mat-icon>{{ status === 'ok' ? 'check_circle' : 'error' }}</mat-icon>

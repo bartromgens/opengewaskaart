@@ -36,3 +36,8 @@ client/.angular/
 # Environment
 .env
 .env.local
+
+# Generated tile data
+data/*
+!data/.gitkeep
+!data/config.json

@@ -118,6 +118,11 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+VECTOR_TILE_MIN_ZOOM = 8
+VECTOR_TILE_MAX_ZOOM = 16
+TIPPECANOE_PATH = str(Path.home() / "bin" / "tippecanoe" / "tippecanoe")
+TIPPECANOE_MIN_VERSION = (2, 80, 0)
+
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
