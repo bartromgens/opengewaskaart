@@ -1,11 +1,20 @@
 import { Location } from '@angular/common';
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {
-  Map,
+  Map as MapLibreMap,
   NavigationControl,
   type ExpressionSpecification,
   type MapLayerMouseEvent,
@@ -20,13 +29,18 @@ import {
   type GewasSummary,
 } from '../api.service';
 import {
+  assignSelectedGewasColors,
   buildGebruikFillColorExpression,
   buildGebruikLegendEntries,
   buildGewasFillColorExpression,
+  buildGewascodeInLayerFilter,
   buildLegendEntries,
+  buildSelectedGewasFillColorExpression,
+  buildSelectedLegendEntries,
   type ColorMode,
   type LegendEntry,
 } from '../crop-colors';
+import { GewasFilterComponent } from '../gewas-filter/gewas-filter';
 import { PerceelDetailPanelComponent } from '../perceel-detail-panel/perceel-detail-panel';
 import { environment } from '../../environments/environment';
 
@@ -54,6 +68,7 @@ interface TileJson {
 @Component({
   selector: 'app-home',
   imports: [
+    GewasFilterComponent,
     MatButtonToggleModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -69,7 +84,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private location = inject(Location);
   private route = inject(ActivatedRoute);
 
-  map: Map | null = null;
+  map: MapLibreMap | null = null;
   apiStatus = signal<string | null>(null);
   /** True until the parcel layer is added and its tiles have finished loading. */
   mapLoading = signal(true);
@@ -80,6 +95,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   selectedParcel = signal<Gewasperceel | null>(null);
   parcelLoading = signal(false);
   parcelError = signal<string | null>(null);
+  /** Full gewas list for the map filter (from `GET /api/gewassen/`). */
+  allGewassen = signal<GewasSummary[]>([]);
+  /** Multi-select filter; empty means show all gewassen. */
+  selectedGewassen = signal<GewasSummary[]>([]);
+  readonly selectedGewasColors = computed(() => assignSelectedGewasColors(this.selectedGewassen()));
 
   private selectedFeatureId: number | null = null;
   private parcelLayersAdded = false;
@@ -92,9 +112,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   private gewasFillExpression: ExpressionSpecification | null = null;
   private gebruikFillExpression: ExpressionSpecification | null = null;
   private gebruikSummaryRows: GebruikSummary[] = [];
+  private pendingGewasFilterCodes: readonly number[] | null = null;
 
   ngOnInit(): void {
     this.colorMode.set(this.readColorModeFromQuery());
+    this.pendingGewasFilterCodes = this.readGewasCodesFromQuery();
     void this.initMap();
     this.loadHealth();
   }
@@ -106,6 +128,15 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.colorMode.set(mode);
     this.refreshLegendForColorMode();
     this.applyActiveFillPaint();
+    this.updateUrlFromMap();
+  }
+
+  onGewasFilterChange(selected: GewasSummary[]): void {
+    this.selectedGewassen.set(selected);
+    this.applyParcelLayerGewasFilter();
+    this.refreshLegendForColorMode();
+    this.applyActiveFillPaint();
+    this.clearParcelIfFilteredOut();
     this.updateUrlFromMap();
   }
 
@@ -125,7 +156,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     const { center, zoom } = this.getInitialMapState();
 
-    this.map = new Map({
+    this.map = new MapLibreMap({
       container: this.mapContainer.nativeElement,
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       center,
@@ -136,14 +167,15 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.map.addControl(new NavigationControl(), 'top-right');
     this.map.on('load', () => {
       void (async () => {
-        // The gebruik summary only feeds the legend, so don't block drawing on it.
-        const summaryPromise = this.fetchGebruikSummary();
-        const [top, mapping] = await Promise.all([
+        const [top, mapping, allGewassen, summary] = await Promise.all([
           this.fetchTopGewassen(),
           this.fetchGewasGebruik(),
+          this.fetchAllGewassen(),
+          this.fetchGebruikSummary(),
         ]);
-        this.addParcelLayers(top, mapping, []);
-        this.gebruikSummaryRows = await summaryPromise;
+        this.allGewassen.set(allGewassen);
+        this.applyPendingGewasSelectionFromQuery();
+        this.addParcelLayers(top, mapping, summary);
         this.refreshLegendForColorMode();
       })();
     });
@@ -213,6 +245,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   private async fetchGebruikSummary(): Promise<GebruikSummary[]> {
     try {
       return await firstValueFrom(this.api.getGebruikSummary());
+    } catch {
+      return [];
+    }
+  }
+
+  private async fetchAllGewassen(): Promise<GewasSummary[]> {
+    try {
+      return await firstValueFrom(this.api.getGewassen());
     } catch {
       return [];
     }
@@ -346,11 +386,16 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.parcelLayersAdded = true;
     // Safety net: clear the indicator once the map settles after adding layers.
     this.map.once('idle', () => this.mapLoading.set(false));
+    this.applyParcelLayerGewasFilter();
     this.applyActiveFillPaint();
     this.updateUrlFromMap();
   }
 
   private activeFillExpression(): ExpressionSpecification {
+    const selected = this.selectedGewassen();
+    if (selected.length > 0 && this.colorMode() === 'gewas') {
+      return buildSelectedGewasFillColorExpression(this.selectedGewasColors());
+    }
     if (this.colorMode() === 'gebruik' && this.gebruikFillExpression) {
       return this.gebruikFillExpression;
     }
@@ -362,7 +407,66 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.legendEntries.set(buildGebruikLegendEntries(this.gebruikSummaryRows));
       return;
     }
+    const selected = this.selectedGewassen();
+    if (selected.length > 0) {
+      this.legendEntries.set(buildSelectedLegendEntries(selected, this.selectedGewasColors()));
+      return;
+    }
     this.legendEntries.set(buildLegendEntries(this.topGewassenForMap));
+  }
+
+  private applyParcelLayerGewasFilter(): void {
+    if (!this.map || !this.parcelLayersAdded) {
+      return;
+    }
+    const codes = this.selectedGewassen().map((s) => s.gewascode);
+    const filter = buildGewascodeInLayerFilter(codes);
+    this.map.setFilter(PERCELEN_FILL_LAYER, filter);
+    this.map.setFilter(PERCELEN_OUTLINE_LAYER, filter);
+  }
+
+  private clearParcelIfFilteredOut(): void {
+    const parcel = this.selectedParcel();
+    if (!parcel) {
+      return;
+    }
+    const codes = this.selectedGewassen();
+    if (codes.length > 0 && !codes.some((s) => s.gewascode === parcel.gewascode)) {
+      this.closeDetailPanel();
+    }
+  }
+
+  private applyPendingGewasSelectionFromQuery(): void {
+    const pending = this.pendingGewasFilterCodes;
+    this.pendingGewasFilterCodes = null;
+    if (pending === null || pending.length === 0) {
+      return;
+    }
+    const byCode = new Map(this.allGewassen().map((g) => [g.gewascode, g]));
+    const chosen: GewasSummary[] = [];
+    const seen = new Set<number>();
+    for (const code of pending) {
+      if (seen.has(code)) {
+        continue;
+      }
+      const row = byCode.get(code);
+      if (row) {
+        seen.add(code);
+        chosen.push(row);
+      }
+    }
+    this.selectedGewassen.set(chosen);
+  }
+
+  private readGewasCodesFromQuery(): readonly number[] | null {
+    const raw = this.route.snapshot.queryParamMap.get('gewas');
+    if (raw === null || raw.trim() === '') {
+      return null;
+    }
+    return raw
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n));
   }
 
   private applyActiveFillPaint(): void {
@@ -519,6 +623,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     params.set('zoom', String(zoom));
     if (this.colorMode() === 'gebruik') {
       params.set('kleur', 'gebruik');
+    }
+    const gewasCodes = this.selectedGewassen().map((g) => g.gewascode);
+    if (gewasCodes.length > 0) {
+      params.set('gewas', gewasCodes.join(','));
     }
     return params.toString();
   }

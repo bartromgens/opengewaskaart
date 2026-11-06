@@ -1,0 +1,49 @@
+<div class="gewas-filter-panel" aria-label="Gewasfilter">
+  <div class="gewas-filter-head">
+    <span class="gewas-filter-title">Gewas</span>
+    @if (selected().length > 0) {
+      <button mat-button type="button" class="gewas-filter-clear" (click)="clearAll()">
+        Wissen
+      </button>
+    }
+  </div>
+
+  <mat-form-field appearance="outline" class="gewas-filter-field" subscriptSizing="dynamic">
+    <mat-label>Zoek gewas</mat-label>
+    <input
+      matInput
+      [formControl]="queryCtrl"
+      [matAutocomplete]="auto"
+      placeholder="Naam of code"
+      autocomplete="off"
+    />
+    <mat-autocomplete
+      #auto="matAutocomplete"
+      (optionSelected)="onOptionSelected($event)"
+      [displayWith]="displayCode"
+    >
+      @for (row of filteredOptions(); track row.gewascode) {
+        <mat-option [value]="row.gewascode">
+          {{ row.gewas }}
+          <span class="gewas-filter-option-code">({{ row.gewascode }})</span>
+        </mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  <mat-chip-set class="gewas-filter-chips">
+    @for (row of selected(); track row.gewascode) {
+      <mat-chip-row (removed)="removeGewas(row.gewascode)">
+        <span
+          class="gewas-filter-chip-swatch"
+          [style.background-color]="colors().get(row.gewascode)"
+          aria-hidden="true"
+        ></span>
+        {{ row.gewas }}
+        <button matChipRemove type="button" [attr.aria-label]="'Verwijder ' + row.gewas">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip-row>
+    }
+  </mat-chip-set>
+</div>

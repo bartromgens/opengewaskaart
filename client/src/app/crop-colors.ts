@@ -1,4 +1,4 @@
-import type { ExpressionSpecification } from 'maplibre-gl';
+import type { ExpressionSpecification, FilterSpecification } from 'maplibre-gl';
 
 import type { GebruikSummary, GewasGebruikKey, GewasGebruikMap, GewasSummary } from './api.service';
 
@@ -48,6 +48,124 @@ export const GEWAS_PALETTE: readonly string[] = [
 
 /** Parcels that are not a fixed pattern and not in the top-N palette. */
 export const OTHER_GEWAS_COLOR = '#6D4C41';
+
+/** Hidden fill for parcels outside the active gewas filter (with layer filter still applied). */
+export const SELECTED_GEWAS_HIDDEN_FILL = 'rgba(0, 0, 0, 0)';
+
+const GOLDEN_ANGLE = 137.508;
+
+function clampChannel(value: number): number {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const hue = ((h % 360) + 360) % 360;
+  const sat = Math.max(0, Math.min(1, s));
+  const light = Math.max(0, Math.min(1, l));
+  const c = (1 - Math.abs(2 * light - 1)) * sat;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = light - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (hue < 60) {
+    r = c;
+    g = x;
+  } else if (hue < 120) {
+    r = x;
+    g = c;
+  } else if (hue < 180) {
+    g = c;
+    b = x;
+  } else if (hue < 240) {
+    g = x;
+    b = c;
+  } else if (hue < 300) {
+    r = x;
+    b = c;
+  } else {
+    r = c;
+    b = x;
+  }
+  return (
+    '#' +
+    [r + m, g + m, b + m]
+      .map((chan) => clampChannel(chan * 255))
+      .map((n) => n.toString(16).padStart(2, '0'))
+      .join('')
+  );
+}
+
+function selectedGewasColorAtIndex(index: number): string {
+  if (index < GEWAS_PALETTE.length) {
+    return GEWAS_PALETTE[index]!;
+  }
+  const hue = (index - GEWAS_PALETTE.length) * GOLDEN_ANGLE;
+  return hslToHex(hue, 0.72, 0.52);
+}
+
+/**
+ * Distinct colours in selection order: first N use `GEWAS_PALETTE`, then golden-angle hues.
+ */
+export function assignSelectedGewasColors(selected: GewasSummary[]): Map<number, string> {
+  const map = new Map<number, string>();
+  let order = 0;
+  for (const row of selected) {
+    if (map.has(row.gewascode)) {
+      continue;
+    }
+    map.set(row.gewascode, selectedGewasColorAtIndex(order));
+    order += 1;
+  }
+  return map;
+}
+
+export function buildSelectedGewasFillColorExpression(
+  colors: ReadonlyMap<number, string>,
+): ExpressionSpecification {
+  const pairs: (number | string)[] = [];
+  for (const [code, color] of colors) {
+    pairs.push(code, color);
+  }
+  return [
+    'match',
+    ['to-number', ['get', 'gewascode']],
+    ...pairs,
+    SELECTED_GEWAS_HIDDEN_FILL,
+  ] as unknown as ExpressionSpecification;
+}
+
+export function buildSelectedLegendEntries(
+  selected: GewasSummary[],
+  colors: ReadonlyMap<number, string>,
+): LegendEntry[] {
+  const seen = new Set<number>();
+  const entries: LegendEntry[] = [];
+  for (const row of selected) {
+    if (seen.has(row.gewascode)) {
+      continue;
+    }
+    seen.add(row.gewascode);
+    const color = colors.get(row.gewascode);
+    if (color === undefined) {
+      continue;
+    }
+    entries.push({ label: row.gewas, color });
+  }
+  return entries;
+}
+
+export function buildGewascodeInLayerFilter(codes: number[]): FilterSpecification | null {
+  if (codes.length === 0) {
+    return null;
+  }
+  const unique = [...new Set(codes)];
+  return [
+    'in',
+    ['to-number', ['get', 'gewascode']],
+    ['literal', unique],
+  ] as unknown as FilterSpecification;
+}
 
 function orderedTopCodes(top: GewasSummary[]): number[] {
   const seen = new Set<number>();
@@ -124,11 +242,7 @@ export function buildGewasFillColorExpression(top: GewasSummary[]): ExpressionSp
     'case',
     ['>=', ['index-of', 'grasland', nameLower], 0],
     GRASLAND_GEWAS_COLOR,
-    [
-      'any',
-      ['>=', ['index-of', 'maïs', nameLower], 0],
-      ['>=', ['index-of', 'mais', nameLower], 0],
-    ],
+    ['any', ['>=', ['index-of', 'maïs', nameLower], 0], ['>=', ['index-of', 'mais', nameLower], 0]],
     MAIS_GEWAS_COLOR,
     ['>=', ['index-of', 'tarwe', nameLower], 0],
     TARWE_GEWAS_COLOR,
@@ -164,7 +278,9 @@ export function buildLegendEntries(top: GewasSummary[]): LegendEntry[] {
 /**
  * Fill colour by tile property `gewascode`, using the API mapping `gewascode → gebruik`.
  */
-export function buildGebruikFillColorExpression(mapping: GewasGebruikMap[]): ExpressionSpecification {
+export function buildGebruikFillColorExpression(
+  mapping: GewasGebruikMap[],
+): ExpressionSpecification {
   const pairs: (number | string)[] = [];
   for (const row of mapping) {
     pairs.push(row.gewascode, GEBRUIK_COLORS[row.gebruik]);

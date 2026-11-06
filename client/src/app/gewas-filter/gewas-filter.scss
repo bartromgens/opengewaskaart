@@ -1,0 +1,75 @@
+.gewas-filter-panel {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 3;
+  width: min(20rem, calc(100vw - 1.5rem));
+  max-width: 20rem;
+  padding: 0.65rem 0.75rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(4px);
+  box-sizing: border-box;
+
+  @media (max-width: 520px) {
+    top: 3.75rem;
+  }
+}
+
+.gewas-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.gewas-filter-title {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #333;
+}
+
+.gewas-filter-clear {
+  font-size: 0.75rem;
+  min-height: 28px;
+  line-height: 28px;
+  padding: 0 0.5rem;
+}
+
+.gewas-filter-field {
+  width: 100%;
+  font-size: 0.85rem;
+
+  --mat-form-field-container-height: 44px;
+  --mat-form-field-container-vertical-padding: 6px;
+}
+
+.gewas-filter-option-code {
+  margin-left: 0.35rem;
+  color: #666;
+  font-size: 0.85em;
+}
+
+.gewas-filter-chips {
+  display: block;
+  max-height: 8.5rem;
+  overflow-y: auto;
+  margin-top: 0.35rem;
+  min-height: 0;
+}
+
+.gewas-filter-chip-swatch {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+::ng-deep .gewas-filter-field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}

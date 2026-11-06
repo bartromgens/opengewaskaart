@@ -241,15 +241,17 @@ class Command(BaseCommand):
 
         # Features of overlapping crops are drawn in tile order. tippecanoe keeps
         # input order with --preserve-input-order, so write them in one global
-        # crop order (largest crop first, small crops on top). Per-cell orders would
-        # make whole cells look dominated by whichever crop happened to be drawn last.
+        # crop order. The last drawn crop wins where crops mix inside a pixel, so the
+        # largest crop (grassland) goes last and stays dominant when zoomed out;
+        # smaller crops only show where they are dense. Per-cell orders would make
+        # whole cells look dominated by whichever crop happened to be drawn last.
         area_per_crop: dict[int, float] = {}
         for code, area, _ in cell_features:
             area_per_crop[code] = area_per_crop.get(code, 0.0) + area
         rank = {
             code: index
             for index, code in enumerate(
-                sorted(area_per_crop, key=lambda c: (-area_per_crop[c], c))
+                sorted(area_per_crop, key=lambda c: (area_per_crop[c], c))
             )
         }
         cell_features.sort(key=lambda item: rank[item[0]])

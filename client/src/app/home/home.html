@@ -8,6 +8,13 @@
     </div>
   }
 
+  <app-gewas-filter
+    [gewassen]="allGewassen()"
+    [selected]="selectedGewassen()"
+    [colors]="selectedGewasColors()"
+    (selectedChange)="onGewasFilterChange($event)"
+  />
+
   <mat-button-toggle-group
     class="map-layer-toggle"
     aria-label="Kaartlaag"
@@ -35,7 +42,7 @@
     </div>
   }
 
-  @if (legendEntries().length > 1) {
+  @if (legendEntries().length > 1 || selectedGewassen().length > 0) {
     <div
       class="map-legend"
       [attr.aria-label]="colorMode() === 'gebruik' ? 'Legenda gebruik' : 'Legenda gewassen'"
@@ -43,6 +50,8 @@
       <div class="map-legend-title">
         @if (colorMode() === 'gebruik') {
           Gebruik (oppervlakte)
+        } @else if (selectedGewassen().length > 0) {
+          Geselecteerde gewassen
         } @else {
           Top gewassen (percelentelling)
         }
