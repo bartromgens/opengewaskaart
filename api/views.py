@@ -1,6 +1,8 @@
 import logging
 
 from rest_framework.authentication import SessionAuthentication
+from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Count, Sum
 from rest_framework.decorators import (
     api_view,
@@ -74,6 +76,14 @@ def gewassen_summary(request: Request) -> Response:
             return Response({"error": "Invalid limit parameter."}, status=400)
         rows = rows[:limit]
 
+    # Full-table aggregate is slow; cache the rows (gebruik is merged in below).
+    cache_key = f"gewassen_summary:{jaar_param}:{limit_param}"
+    cached_rows = cache.get(cache_key)
+    if cached_rows is None:
+        cached_rows = list(rows)
+        cache.set(cache_key, cached_rows, settings.SUMMARY_CACHE_SECONDS)
+    rows = cached_rows
+
     codes_in_gebruik_table = set(
         GewasGebruik.objects.values_list("gewascode", flat=True)
     )
@@ -135,10 +145,21 @@ def gebruik_summary(request: Request) -> Response:
 
     parcels: dict[str, int] = defaultdict(int)
     areas: dict[str, float] = defaultdict(float)
-    for row in queryset.values("gewascode", "area_m2"):
+    # Aggregate per gewascode in the database (a few hundred rows) instead of
+    # iterating every parcel in Python; cache since it scans the whole table.
+    cache_key = f"gebruik_summary:{jaar_param}"
+    per_code = cache.get(cache_key)
+    if per_code is None:
+        per_code = list(
+            queryset.values("gewascode").annotate(
+                parcel_count=Count("id"), area_m2=Sum("area_m2")
+            )
+        )
+        cache.set(cache_key, per_code, settings.SUMMARY_CACHE_SECONDS)
+    for row in per_code:
         code = int(row["gewascode"])
         g = gebruik_map.get(code, GewasGebruik.GEBRUIK_ONBEKEND)
-        parcels[g] += 1
+        parcels[g] += row["parcel_count"]
         am = row["area_m2"]
         if am is not None:
             areas[g] += float(am)

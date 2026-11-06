@@ -2,6 +2,7 @@ import { Location } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Map, NavigationControl, type ExpressionSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
 import { firstValueFrom } from 'rxjs';
 
@@ -46,7 +47,7 @@ interface TileJson {
 
 @Component({
   selector: 'app-home',
-  imports: [MatIconModule, PerceelDetailPanelComponent],
+  imports: [MatIconModule, MatProgressSpinnerModule, PerceelDetailPanelComponent],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
@@ -59,6 +60,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   map: Map | null = null;
   apiStatus = signal<string | null>(null);
+  /** True until the parcel layer is added and its tiles have finished loading. */
+  mapLoading = signal(true);
   /** Top gewassen used for map colours + legend (from /api/gewassen/?limit=). */
   legendEntries = signal<LegendEntry[]>([]);
   /** Map colouring: per gewas palette or veevoer/voedsel buckets from API. */
@@ -122,13 +125,37 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.map.addControl(new NavigationControl(), 'top-right');
     this.map.on('load', () => {
       void (async () => {
-        const [top, mapping, gebruikSummary] = await Promise.all([
+        // The gebruik summary only feeds the legend, so don't block drawing on it.
+        const summaryPromise = this.fetchGebruikSummary();
+        const [top, mapping] = await Promise.all([
           this.fetchTopGewassen(),
           this.fetchGewasGebruik(),
-          this.fetchGebruikSummary(),
         ]);
-        this.addParcelLayers(top, mapping, gebruikSummary);
+        this.addParcelLayers(top, mapping, []);
+        this.gebruikSummaryRows = await summaryPromise;
+        this.refreshLegendForColorMode();
       })();
+    });
+    // Derive loading state from the parcel source itself; the global 'idle'
+    // event can be missed or delayed (e.g. basemap activity, failed tiles).
+    const syncLoading = (): void => {
+      if (!this.map || !this.parcelLayersAdded || !this.map.getSource(PERCELEN_SOURCE)) {
+        return;
+      }
+      this.mapLoading.set(!this.map.isSourceLoaded(PERCELEN_SOURCE));
+    };
+    this.map.on('dataloading', syncLoading);
+    this.map.on('sourcedata', syncLoading);
+    this.map.on('moveend', syncLoading);
+    this.map.on('idle', () => {
+      if (this.parcelLayersAdded) {
+        this.mapLoading.set(false);
+      }
+    });
+    this.map.on('error', () => {
+      if (this.parcelLayersAdded) {
+        this.mapLoading.set(false);
+      }
     });
     this.map.on('moveend', () => this.updateUrlFromMap());
     this.map.on('click', PERCELEN_FILL_LAYER, (event) => this.onParcelClick(event));
@@ -297,6 +324,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
 
     this.parcelLayersAdded = true;
+    // Safety net: clear the indicator once the map settles after adding layers.
+    this.map.once('idle', () => this.mapLoading.set(false));
     this.applyActiveFillPaint();
     this.updateUrlFromMap();
   }

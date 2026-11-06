@@ -41,6 +41,23 @@
   height: 100%;
 }
 
+.map-loading {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  font-size: 0.85rem;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .health-badge {
   position: absolute;
   bottom: 1rem;

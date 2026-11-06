@@ -1,6 +1,13 @@
 <div class="map-layout">
   <div #mapContainer class="map-container"></div>
 
+  @if (mapLoading()) {
+    <div class="map-loading" role="status" aria-live="polite">
+      <mat-spinner diameter="20"></mat-spinner>
+      <span>Kaartgegevens laden…</span>
+    </div>
+  }
+
   <div class="map-color-control" aria-label="Kaartkleuring">
     <div class="map-color-control-title">Kleuring</div>
     <label class="map-color-option">

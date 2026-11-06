@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -74,6 +75,19 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+
+# Summary endpoints scan the whole parcel table; cache their results.
+# Disabled under `manage.py test` so tests always see fresh data.
+CACHES = {
+    'default': {
+        'BACKEND': (
+            'django.core.cache.backends.dummy.DummyCache'
+            if len(sys.argv) > 1 and sys.argv[1] == 'test'
+            else 'django.core.cache.backends.locmem.LocMemCache'
+        ),
+    }
+}
+SUMMARY_CACHE_SECONDS = 60 * 60
 
 DATABASES = {
     'default': {
