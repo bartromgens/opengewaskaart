@@ -166,12 +166,16 @@ LOGGING = {
             ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
+        "color": {
+            "()": "config.logging_formatters.ColorFormatter",
+            "datefmt": "%H:%M:%S",
+        },
     },
     "handlers": {
         "console": {
             "level": "INFO",
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "formatter": "color",
         },
         "django_file": {
             "level": "INFO",

@@ -7,6 +7,8 @@ class Gewasperceel(models.Model):
     gewas = models.CharField(max_length=120)
     category = models.CharField(max_length=100)
     status = models.CharField(max_length=20)
+    # Parcel area in m² (RD), from ST_Area(geom) at ingest or backfill.
+    area_m2 = models.FloatField(null=True, blank=True)
     geometry = models.TextField()
     min_lon = models.FloatField()
     min_lat = models.FloatField()

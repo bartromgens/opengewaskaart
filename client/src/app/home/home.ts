@@ -2,7 +2,7 @@ import { Location } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { Map, NavigationControl, type MapLayerMouseEvent } from 'maplibre-gl';
+import { Map, NavigationControl, type ExpressionSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
 
 import { ApiService, type Gewasperceel } from '../api.service';
 import { buildCategoryFillColorExpression } from '../crop-colors';
@@ -18,6 +18,9 @@ const DEFAULT_TILE_MIN_ZOOM = 5;
 const DEFAULT_TILE_MAX_ZOOM = 16;
 const DEFAULT_MAP_ZOOM = 7;
 const DEFAULT_CENTER: [number, number] = [5.3, 52.2];
+// Boundaries are useful once a field is large enough to read. Below this zoom
+// a 1px stroke covers most of each parcel and hides the crop colors.
+const OUTLINE_MIN_ZOOM = 12;
 
 interface TileJson {
   minzoom?: number;
@@ -136,24 +139,37 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.map.addSource(PERCELEN_SOURCE, sourceSpec);
 
+    const categoryColor = buildCategoryFillColorExpression();
+    // zoom must be the top-level interpolate input. feature-state lives in the stops.
+    const selectedCase = (selected: number, normal: number): ExpressionSpecification =>
+      [
+        'case',
+        ['boolean', ['feature-state', 'selected'], false],
+        selected,
+        normal,
+      ] as ExpressionSpecification;
+
     this.map.addLayer({
       id: PERCELEN_FILL_LAYER,
       type: 'fill',
       source: PERCELEN_SOURCE,
       'source-layer': PERCELEN_LAYER,
       paint: {
-        'fill-color': buildCategoryFillColorExpression(),
+        'fill-color': categoryColor,
         'fill-opacity': [
-          'case',
-          ['boolean', ['feature-state', 'selected'], false],
-          0.85,
-          0.65,
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          5, selectedCase(0.92, 0.88),
+          13, selectedCase(0.9, 0.72),
+          16, selectedCase(0.9, 0.62),
         ],
+        // Same color as the fill, so shared edges do not draw a dark grid.
         'fill-outline-color': [
           'case',
           ['boolean', ['feature-state', 'selected'], false],
           '#1565c0',
-          '#666666',
+          categoryColor,
         ],
       },
     });
@@ -163,18 +179,29 @@ export class HomeComponent implements OnInit, OnDestroy {
       type: 'line',
       source: PERCELEN_SOURCE,
       'source-layer': PERCELEN_LAYER,
+      minzoom: OUTLINE_MIN_ZOOM,
       paint: {
         'line-color': [
           'case',
           ['boolean', ['feature-state', 'selected'], false],
           '#1565c0',
-          '#555555',
+          '#4a4a4a',
+        ],
+        'line-opacity': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          OUTLINE_MIN_ZOOM, selectedCase(1, 0),
+          13.5, selectedCase(1, 0.45),
+          15, selectedCase(1, 0.8),
         ],
         'line-width': [
-          'case',
-          ['boolean', ['feature-state', 'selected'], false],
-          2.5,
-          0.5,
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          OUTLINE_MIN_ZOOM, selectedCase(2.5, 0.2),
+          14, selectedCase(2.5, 0.6),
+          16, selectedCase(2.5, 1.1),
         ],
       },
     });
@@ -216,6 +243,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         gewas: tileGewas,
         category: String(tileProperties?.['category'] ?? ''),
         status: String(tileProperties?.['status'] ?? ''),
+        area_m2: null,
         geometry: { type: 'Polygon', coordinates: [] },
       });
     } else {

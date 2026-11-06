@@ -5,13 +5,13 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from api.brp_constants import EXCLUDED_MBTILES_CATEGORIES
 from api.management.bbox import BBOX_ARGUMENT_HELP, filter_queryset_by_bbox, require_bbox
 from api.models import Gewasperceel
 
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 5000
-EXCLUDED_MBTILES_CATEGORIES = ("Landschapselement",)
 
 
 def feature_from_row(row: Gewasperceel) -> dict:

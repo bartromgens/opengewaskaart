@@ -12,7 +12,7 @@ from rest_framework.test import APIClient
 from api.models import Gewasperceel
 from api.management.bbox import parse_bbox
 from api.management.commands.geojson_to_mbtiles import validate_geojson_has_features
-from api.management.commands.export_gewaspercelen_geojson import EXCLUDED_MBTILES_CATEGORIES
+from api.brp_constants import EXCLUDED_MBTILES_CATEGORIES
 from api.management.tippecanoe import (
     build_tippecanoe_command,
     ensure_min_tippecanoe_version,
@@ -147,6 +147,68 @@ class TippecanoeCommandTests(TestCase):
         self.assertNotIn("--drop-densest-as-needed", command)
 
 
+class GewassenSummaryViewTests(TestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.geometry = json.dumps(
+            {
+                "type": "Polygon",
+                "coordinates": [[[5.3, 52.2], [5.31, 52.2], [5.31, 52.21], [5.3, 52.21], [5.3, 52.2]]],
+            }
+        )
+        self.common = {
+            "jaar": 2025,
+            "status": "Definitief",
+            "geometry": self.geometry,
+            "min_lon": 5.3,
+            "min_lat": 52.2,
+            "max_lon": 5.31,
+            "max_lat": 52.21,
+        }
+        Gewasperceel.objects.create(
+            gewascode=201,
+            gewas="Wintertarwe",
+            category="Granen",
+            area_m2=1000.0,
+            geometry_hash="g1",
+            **self.common,
+        )
+        Gewasperceel.objects.create(
+            gewascode=201,
+            gewas="Wintertarwe",
+            category="Granen",
+            area_m2=500.0,
+            geometry_hash="g2",
+            **self.common,
+        )
+        Gewasperceel.objects.create(
+            gewascode=901,
+            gewas="Houtwal",
+            category="Landschapselement",
+            area_m2=200.0,
+            geometry_hash="l1",
+            **self.common,
+        )
+
+    def test_gewassen_summary_aggregates_and_excludes_landschap(self) -> None:
+        url = reverse("gewassen-summary")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        row = data[0]
+        self.assertEqual(row["gewascode"], 201)
+        self.assertEqual(row["gewas"], "Wintertarwe")
+        self.assertEqual(row["category"], "Granen")
+        self.assertEqual(row["parcel_count"], 2)
+        self.assertAlmostEqual(row["area_m2"], 1500.0)
+
+    def test_gewassen_summary_invalid_jaar(self) -> None:
+        url = reverse("gewassen-summary")
+        response = self.client.get(url, {"jaar": "x"})
+        self.assertEqual(response.status_code, 400)
+
+
 class GewasperceelDetailViewTests(TestCase):
     def setUp(self) -> None:
         self.client = APIClient()
@@ -156,6 +218,7 @@ class GewasperceelDetailViewTests(TestCase):
             gewas="Wintertarwe",
             category="Granen",
             status="Definitief",
+            area_m2=None,
             geometry=json.dumps(
                 {
                     "type": "Polygon",

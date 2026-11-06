@@ -44,8 +44,9 @@ def require_gpkg_path(gpkg_path: str | Path) -> Path:
 
 
 def compute_geometry_hash(properties: dict, geometry: dict) -> str:
+    hash_properties = {k: v for k, v in properties.items() if k != "area_m2"}
     payload = json.dumps(
-        {"properties": properties, "geometry": geometry},
+        {"properties": hash_properties, "geometry": geometry},
         sort_keys=True,
         separators=(",", ":"),
     )
@@ -86,12 +87,16 @@ def feature_to_model(feature: dict) -> Gewasperceel:
     geometry = feature["geometry"]
     min_lon, min_lat, max_lon, max_lat = compute_bbox(geometry)
 
+    area_raw = properties.get("area_m2")
+    area_m2 = float(area_raw) if area_raw is not None else None
+
     return Gewasperceel(
         jaar=properties["jaar"],
         gewascode=properties["gewascode"],
         gewas=properties["gewas"],
         category=properties["category"],
         status=properties["status"],
+        area_m2=area_m2,
         geometry=json.dumps(geometry, separators=(",", ":")),
         min_lon=min_lon,
         min_lat=min_lat,
@@ -116,6 +121,8 @@ def fetch_features(
     tmp_path: Path,
 ) -> list[dict]:
     xmin, ymin, xmax, ymax = bbox
+    # ST_Area on geom in source CRS (EPSG:28992); result in m². -spat filters in RD.
+    select_sql = "SELECT *, ST_Area(geom) AS area_m2 FROM brp_gewas"
     command = [
         "ogr2ogr",
         "-f",
@@ -123,11 +130,17 @@ def fetch_features(
         str(tmp_path),
         resolve_ogr_source(gpkg_path, source_url),
         GPKG_LAYER,
+        "-sql",
+        select_sql,
+        "-dialect",
+        "SQLite",
         "-spat",
         str(xmin),
         str(ymin),
         str(xmax),
         str(ymax),
+        "-spat_srs",
+        "EPSG:28992",
         "-t_srs",
         "EPSG:4326",
         "-dim",

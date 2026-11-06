@@ -1,6 +1,7 @@
 import logging
 
 from rest_framework.authentication import SessionAuthentication
+from django.db.models import Count, Sum
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -11,9 +12,10 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from api.brp_constants import EXCLUDED_MBTILES_CATEGORIES
 from api.log_files import list_log_files, parse_line_count, read_log_file, resolve_log_file
 from api.models import Gewasperceel
-from api.serializers import GewasperceelSerializer
+from api.serializers import GewassenSummarySerializer, GewasperceelSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,27 @@ class GewasperceelDetailView(RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         logger.info("Parcel detail requested: pk=%s", kwargs.get("pk"))
         return super().retrieve(request, *args, **kwargs)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def gewassen_summary(request: Request) -> Response:
+    jaar_param = request.query_params.get("jaar")
+    queryset = Gewasperceel.objects.exclude(category__in=EXCLUDED_MBTILES_CATEGORIES)
+    if jaar_param is not None:
+        try:
+            jaar = int(jaar_param)
+        except ValueError:
+            return Response({"error": "Invalid jaar parameter."}, status=400)
+        queryset = queryset.filter(jaar=jaar)
+
+    rows = (
+        queryset.values("gewascode", "gewas", "category")
+        .annotate(parcel_count=Count("id"), area_m2=Sum("area_m2"))
+        .order_by("-parcel_count")
+    )
+    serializer = GewassenSummarySerializer(rows, many=True)
+    return Response(serializer.data)
 
 
 @api_view(["GET"])

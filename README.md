@@ -163,3 +163,7 @@ When you ingest new data or change the export area, repeat the ingest and export
 - Fill color is based on crop `category` (see `client/src/app/crop-colors.ts`).
 - Click a parcel to highlight it and load details from `GET /api/percelen/<id>/`.
 - Tile feature properties include `id`, `jaar`, `gewascode`, `gewas`, `category`, and `status` so client-side filtering can be added later with `map.setFilter()` without re-tiling.
+
+### Gewassen overview
+
+The **Gewassen** page (`/gewassen`) lists each crop with parcel count and total surface area (hectares), aggregating `GET /api/gewassen/` (Landschapselement excluded). Parcel `area_m2` is set on ingest from the GeoPackage (RD `ST_Area`). For rows loaded before that field existed, run `python manage.py backfill_area` after `migrate`.

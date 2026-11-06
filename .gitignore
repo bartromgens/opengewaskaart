@@ -1,3 +1,6 @@
+# Local pip target for ad-hoc test installs
+.test-pip-site/
+
 # Python
 __pycache__/
 *.py[cod]
