@@ -6,6 +6,8 @@ REGION_BBOXES: dict[str, Tuple[float, float, float, float]] = {
     "netherlands": (3.2, 50.75, 7.2, 53.7),
     # Utrecht province (WGS84); use with export_to_mbtiles --bbox utrecht for dev.
     "utrecht": (4.792, 51.858, 5.627, 52.302),
+    # Small test area around Gouda (~27 x 28 km).
+    "gouda": (4.55, 51.90, 4.95, 52.15),
 }
 
 BBOX_ARGUMENT_HELP = (

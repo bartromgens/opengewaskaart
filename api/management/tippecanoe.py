@@ -2,7 +2,7 @@ import re
 import subprocess
 from argparse import BooleanOptionalAction
 from pathlib import Path
-from typing import Any, Iterable, Optional, Tuple
+from typing import Any, Iterable, Optional, Sequence, Tuple
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -37,6 +37,10 @@ MBTILES_CONVERSION_OPTION_KEYS = (
     "drop_smallest",
     "drop_fraction",
     "limit_tile_feature_count",
+    "overview_max_zoom",
+    "overview_simplification",
+    "dissolved_max_zoom",
+    "overview_input",
     "bbox",
     "tippecanoe",
 )
@@ -262,6 +266,48 @@ def add_mbtiles_conversion_arguments(parser) -> None:
         ),
     )
     parser.add_argument(
+        "--overview-max-zoom",
+        type=int,
+        default=getattr(settings, "VECTOR_TILE_OVERVIEW_MAX_ZOOM", 10),
+        metavar="ZOOM",
+        help=(
+            "Highest zoom built as a coalesced overview (same-crop neighbours merged, "
+            "only gewas/gewascode kept). Detailed per-parcel tiles start one zoom above. "
+            "0 disables the overview "
+            f"(default: {getattr(settings, 'VECTOR_TILE_OVERVIEW_MAX_ZOOM', 10)})."
+        ),
+    )
+    parser.add_argument(
+        "--overview-simplification",
+        type=float,
+        default=getattr(settings, "VECTOR_TILE_OVERVIEW_SIMPLIFICATION", 2),
+        metavar="SCALE",
+        help=(
+            "Simplification multiplier for the overview tiles "
+            f"(default: {getattr(settings, 'VECTOR_TILE_OVERVIEW_SIMPLIFICATION', 2)})."
+        ),
+    )
+    parser.add_argument(
+        "--dissolved-max-zoom",
+        type=int,
+        default=getattr(settings, "VECTOR_TILE_DISSOLVED_MAX_ZOOM", 8),
+        metavar="ZOOM",
+        help=(
+            "Highest zoom built from the dissolved GeoJSON (export_overview_geojson): "
+            "parcels merged per crop, nothing dropped. Needs the --overview-input file; "
+            "0 disables "
+            f"(default: {getattr(settings, 'VECTOR_TILE_DISSOLVED_MAX_ZOOM', 8)})."
+        ),
+    )
+    parser.add_argument(
+        "--overview-input",
+        type=str,
+        default=str(
+            settings.BASE_DIR / "data" / "gewaspercelen_overview.geojson"
+        ),
+        help="Dissolved GeoJSON (default: data/gewaspercelen_overview.geojson).",
+    )
+    parser.add_argument(
         "--bbox",
         type=str,
         default=None,
@@ -301,6 +347,11 @@ def build_tippecanoe_command(
     limit_tile_feature_count: int = 0,
     bbox: Optional[Tuple[float, float, float, float]],
     force: bool,
+    coalesce: bool = False,
+    coalesce_smallest: bool = False,
+    detect_shared_borders: bool = False,
+    include_attributes: Optional[Sequence[str]] = None,
+    use_feature_id: bool = True,
 ) -> list[str]:
     tippecanoe_cmd = [
         tippecanoe_path,
@@ -318,8 +369,24 @@ def build_tippecanoe_command(
         str(low_detail),
         "--minimum-detail",
         str(minimum_detail),
-        "--use-attribute-for-id=id",
     ]
+
+    if use_feature_id:
+        tippecanoe_cmd.append("--use-attribute-for-id=id")
+
+    for attribute in include_attributes or ():
+        tippecanoe_cmd.extend(["--include", attribute])
+
+    if coalesce:
+        # Merge same-attribute polygons within a tile into one feature.
+        tippecanoe_cmd.append("--coalesce")
+
+    if coalesce_smallest:
+        tippecanoe_cmd.append("--coalesce-smallest-as-needed")
+
+    if detect_shared_borders:
+        # Simplify shared borders identically so neighbours leave no gaps/slivers.
+        tippecanoe_cmd.append("--detect-shared-borders")
 
     if maximum_tile_bytes is not None:
         tippecanoe_cmd.extend(
@@ -367,6 +434,43 @@ def build_tippecanoe_command(
         tippecanoe_cmd.insert(-1, "--force")
 
     return tippecanoe_cmd
+
+
+def resolve_tile_join_path(tippecanoe_path: str) -> str:
+    """tile-join ships with tippecanoe; look next to it first, then on PATH."""
+    sibling = Path(tippecanoe_path).with_name("tile-join")
+    if sibling.exists():
+        return str(sibling)
+    return find_executable(
+        "tile-join",
+        [
+            "/usr/local/bin/tile-join",
+            "/usr/bin/tile-join",
+            "/opt/homebrew/bin/tile-join",
+        ],
+        "tile-join (part of tippecanoe) was not found.",
+    )
+
+
+def build_tile_join_command(
+    *,
+    tile_join_path: str,
+    output_path: Path,
+    input_paths: Sequence[Path],
+    force: bool,
+) -> list[str]:
+    # tile-join re-encodes every tile and by default drops tiles above
+    # 500 KB, which is exactly what happens to dense overview tiles.
+    command = [
+        tile_join_path,
+        "--output",
+        str(output_path),
+        "--no-tile-size-limit",
+    ]
+    if force:
+        command.append("--force")
+    command.extend(str(path) for path in input_paths)
+    return command
 
 
 def run_tippecanoe(command: Iterable[str], stdout) -> None:

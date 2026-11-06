@@ -128,9 +128,16 @@ VECTOR_TILE_MAX_FEATURES = 1_000_000
 # Coordinate precision: full detail at max zoom, lower precision at overview zooms.
 VECTOR_TILE_FULL_DETAIL = 12
 VECTOR_TILE_LOW_DETAIL = 12
-VECTOR_TILE_MINIMUM_DETAIL = 9
+VECTOR_TILE_MINIMUM_DETAIL = 10
 # Higher values simplify low-zoom geometry more aggressively before dropping features.
-VECTOR_TILE_SIMPLIFICATION = 15
+VECTOR_TILE_SIMPLIFICATION = 3
+# Zooms up to this value use a coalesced overview (same-crop neighbours merged,
+# only gewas/gewascode kept); per-parcel tiles start one zoom higher. 0 disables.
+VECTOR_TILE_OVERVIEW_MAX_ZOOM = 11
+# Zooms up to this value are built from a dissolved GeoJSON (parcels merged per
+# crop per grid cell by export_overview_geojson), so nothing is dropped. 0 disables.
+VECTOR_TILE_DISSOLVED_MAX_ZOOM = 8
+VECTOR_TILE_OVERVIEW_SIMPLIFICATION = 2
 # Tippecanoe runs coalesce/drop-*-as-needed BEFORE reducing detail. Keep these off
 # so oversized tiles step down through minimum-detail first.
 VECTOR_TILE_COALESCE_DENSEST = False

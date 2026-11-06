@@ -159,6 +159,67 @@ class TippecanoeCommandTests(TestCase):
         self.assertNotIn("--drop-densest-as-needed", command)
 
 
+class TippecanoeOverviewCommandTests(TestCase):
+    def test_overview_command_coalesces_and_strips_attributes(self) -> None:
+        command = build_tippecanoe_command(
+            tippecanoe_path="/usr/bin/tippecanoe",
+            input_path=Path("/tmp/in.geojson"),
+            output_path=Path("/tmp/out.mbtiles"),
+            layer_name="percelen",
+            min_zoom=5,
+            max_zoom=10,
+            maximum_tile_bytes=2_000_000,
+            maximum_tile_features=1_000_000,
+            full_detail=12,
+            low_detail=12,
+            minimum_detail=10,
+            simplification=2,
+            coalesce_densest=False,
+            drop_densest=False,
+            drop_smallest=True,
+            drop_fraction=False,
+            coalesce=True,
+            coalesce_smallest=True,
+            detect_shared_borders=True,
+            include_attributes=("gewascode", "gewas"),
+            use_feature_id=False,
+            bbox=None,
+            force=True,
+        )
+
+        self.assertIn("--coalesce", command)
+        self.assertIn("--coalesce-smallest-as-needed", command)
+        self.assertIn("--detect-shared-borders", command)
+        self.assertEqual(command.count("--include"), 2)
+        self.assertNotIn("--use-attribute-for-id=id", command)
+        self.assertNotIn("--drop-fraction-as-needed", command)
+
+
+class DissolveGeometriesTests(TestCase):
+    def test_adjacent_parcels_merge_and_tiny_ones_drop(self) -> None:
+        from shapely.geometry import box
+
+        from api.management.commands.export_overview_geojson import dissolve_geometries
+
+        left = box(5.0, 52.0, 5.01, 52.01)
+        right = box(5.0101, 52.0, 5.02, 52.01)  # small ditch between the two
+        tiny = box(6.0, 52.0, 6.0001, 52.0001)
+
+        result = dissolve_geometries([left, right, tiny])
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.geom_type, "Polygon")
+        self.assertGreater(result.area, 0.9 * (0.02 * 0.01))
+        self.assertFalse(result.intersects(tiny))
+
+    def test_nothing_survives_returns_none(self) -> None:
+        from shapely.geometry import box
+
+        from api.management.commands.export_overview_geojson import dissolve_geometries
+
+        self.assertIsNone(dissolve_geometries([box(5.0, 52.0, 5.0001, 52.0001)]))
+
+
 class GewassenSummaryViewTests(TestCase):
     def setUp(self) -> None:
         self.client = APIClient()
@@ -226,6 +287,8 @@ class GewassenSummaryViewTests(TestCase):
         self.assertEqual(row1["gewascode"], 305)
         self.assertEqual(row0["gebruik"], GewasGebruik.GEBRUIK_ONBEKEND)
         self.assertEqual(row1["gebruik"], GewasGebruik.GEBRUIK_ONBEKEND)
+        self.assertFalse(row0["gebruik_geclassificeerd"])
+        self.assertFalse(row1["gebruik_geclassificeerd"])
 
     def test_gewassen_summary_limit_returns_top_row(self) -> None:
         url = reverse("gewassen-summary")
@@ -234,6 +297,7 @@ class GewassenSummaryViewTests(TestCase):
         data = response.json()
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]["gewascode"], 201)
+        self.assertFalse(data[0]["gebruik_geclassificeerd"])
 
     def test_gewassen_summary_invalid_limit(self) -> None:
         url = reverse("gewassen-summary")
@@ -253,6 +317,8 @@ class GewassenSummaryViewTests(TestCase):
         by_code = {row["gewascode"]: row for row in response.json()}
         self.assertEqual(by_code[201]["gebruik"], GewasGebruik.GEBRUIK_GEMENGD)
         self.assertEqual(by_code[305]["gebruik"], GewasGebruik.GEBRUIK_ONBEKEND)
+        self.assertTrue(by_code[201]["gebruik_geclassificeerd"])
+        self.assertFalse(by_code[305]["gebruik_geclassificeerd"])
 
 
 class GewasGebruikListViewTests(TestCase):

@@ -41,6 +41,14 @@ class Command(BaseCommand):
             action="store_true",
             help="Skip GeoJSON export and reuse an existing file (--geojson-output).",
         )
+        parser.add_argument(
+            "--skip-overview-export",
+            action="store_true",
+            help=(
+                "Reuse the existing dissolved overview GeoJSON (--overview-input) "
+                "instead of regenerating it."
+            ),
+        )
         add_mbtiles_conversion_arguments(parser)
 
     def handle(self, *args, **options) -> None:
@@ -90,6 +98,26 @@ class Command(BaseCommand):
 
             if not geojson_path.exists():
                 raise CommandError("GeoJSON export failed - file was not created")
+
+        if (
+            options["dissolved_max_zoom"] > 0
+            and not skip_geojson_export
+            and not options["skip_overview_export"]
+        ):
+            self.stdout.write("")
+            self.stdout.write("=" * 60)
+            self.stdout.write("Step 1b: Dissolving parcels for low-zoom overview tiles")
+            self.stdout.write("=" * 60)
+            overview_kwargs = {"output": options["overview_input"]}
+            if year is not None:
+                overview_kwargs["year"] = year
+            if bbox_str:
+                overview_kwargs["bbox"] = bbox_str
+            try:
+                call_command("export_overview_geojson", **overview_kwargs)
+            except Exception as exc:
+                logger.exception("Failed to export overview GeoJSON: %s", exc)
+                raise CommandError(f"Failed to export overview GeoJSON: {exc}") from exc
 
         self.stdout.write("")
         self.stdout.write("=" * 60)
