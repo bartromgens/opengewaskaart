@@ -14,10 +14,13 @@ from rest_framework.response import Response
 
 from api.brp_constants import EXCLUDED_MBTILES_CATEGORIES
 from api.log_files import list_log_files, parse_line_count, read_log_file, resolve_log_file
-from api.models import Gewasperceel
+from api.gebruik import gebruik_by_gewascode
+from api.models import Gewasperceel, GewasGebruik
 from api.serializers import (
     CategorieSummarySerializer,
+    GebruikSummarySerializer,
     GewassenSummarySerializer,
+    GewasGebruikSerializer,
     GewasperceelSerializer,
 )
 
@@ -33,6 +36,11 @@ def health_check(request: Request) -> Response:
 class GewasperceelDetailView(RetrieveAPIView):
     queryset = Gewasperceel.objects.all()
     serializer_class = GewasperceelSerializer
+
+    def get_serializer_context(self) -> dict:
+        ctx = super().get_serializer_context()
+        ctx["gebruik_map"] = gebruik_by_gewascode()
+        return ctx
 
     def retrieve(self, request, *args, **kwargs):
         logger.info("Parcel detail requested: pk=%s", kwargs.get("pk"))
@@ -66,7 +74,11 @@ def gewassen_summary(request: Request) -> Response:
             return Response({"error": "Invalid limit parameter."}, status=400)
         rows = rows[:limit]
 
-    serializer = GewassenSummarySerializer(rows, many=True)
+    serializer = GewassenSummarySerializer(
+        rows,
+        many=True,
+        context={"gebruik_map": gebruik_by_gewascode()},
+    )
     return Response(serializer.data)
 
 
@@ -88,6 +100,76 @@ def categorieen_summary(request: Request) -> Response:
         .order_by("-parcel_count")
     )
     serializer = CategorieSummarySerializer(rows, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def gewas_gebruik_list(request: Request) -> Response:
+    rows = GewasGebruik.objects.values("gewascode", "gebruik").order_by("gewascode")
+    serializer = GewasGebruikSerializer(rows, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def gebruik_summary(request: Request) -> Response:
+    from collections import defaultdict
+
+    jaar_param = request.query_params.get("jaar")
+    queryset = Gewasperceel.objects.exclude(category__in=EXCLUDED_MBTILES_CATEGORIES)
+    if jaar_param is not None:
+        try:
+            jaar = int(jaar_param)
+        except ValueError:
+            return Response({"error": "Invalid jaar parameter."}, status=400)
+        queryset = queryset.filter(jaar=jaar)
+
+    gebruik_map = gebruik_by_gewascode()
+
+    parcels: dict[str, int] = defaultdict(int)
+    areas: dict[str, float] = defaultdict(float)
+    for row in queryset.values("gewascode", "area_m2"):
+        code = int(row["gewascode"])
+        g = gebruik_map.get(code, GewasGebruik.GEBRUIK_ONBEKEND)
+        parcels[g] += 1
+        am = row["area_m2"]
+        if am is not None:
+            areas[g] += float(am)
+
+    order = (
+        GewasGebruik.GEBRUIK_VEEVOER,
+        GewasGebruik.GEBRUIK_VOEDSEL,
+        GewasGebruik.GEBRUIK_GEMENGD,
+        GewasGebruik.GEBRUIK_NIET_VOEDSEL,
+        GewasGebruik.GEBRUIK_ONBEKEND,
+    )
+    seen = set(order)
+    out = []
+    for g in order:
+        pc = parcels.get(g, 0)
+        am2 = areas.get(g, 0.0)
+        out.append(
+            {
+                "gebruik": g,
+                "parcel_count": pc,
+                "area_m2": am2 if am2 > 0 else None,
+            }
+        )
+    for g in sorted(set(parcels) | set(areas)):
+        if g in seen:
+            continue
+        pc = parcels.get(g, 0)
+        am2 = areas.get(g, 0.0)
+        out.append(
+            {
+                "gebruik": g,
+                "parcel_count": pc,
+                "area_m2": am2 if am2 > 0 else None,
+            }
+        )
+
+    serializer = GebruikSummarySerializer(out, many=True)
     return Response(serializer.data)
 
 

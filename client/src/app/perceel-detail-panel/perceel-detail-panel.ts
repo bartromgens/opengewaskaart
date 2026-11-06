@@ -1,7 +1,8 @@
 import { Component, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 
-import type { Gewasperceel } from '../api.service';
+import type { Gewasperceel, GewasGebruikKey } from '../api.service';
+import { gebruikLabel } from '../crop-colors';
 
 @Component({
   selector: 'app-perceel-detail-panel',
@@ -14,4 +15,8 @@ export class PerceelDetailPanelComponent {
   loading = input(false);
   error = input<string | null>(null);
   closed = output<void>();
+
+  formatGebruik(gebruik: GewasGebruikKey): string {
+    return gebruikLabel(gebruik);
+  }
 }

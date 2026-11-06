@@ -9,16 +9,28 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from api.models import Gewasperceel
+from api.models import GewasGebruik, Gewasperceel
 from api.management.bbox import parse_bbox
 from api.management.commands.geojson_to_mbtiles import validate_geojson_has_features
 from api.brp_constants import EXCLUDED_MBTILES_CATEGORIES
+from api.gewasgebruik_seed import classify_gewas
 from api.management.tippecanoe import (
     build_tippecanoe_command,
     ensure_min_tippecanoe_version,
     format_version,
     parse_tippecanoe_version,
 )
+
+
+class GewasGebruikClassifyTests(TestCase):
+    def test_grain_codes_are_gemengd(self) -> None:
+        self.assertEqual(classify_gewas(233, "Tarwe, winter-", "Bouwland"), GewasGebruik.GEBRUIK_GEMENGD)
+
+    def test_snijmais_is_veevoer(self) -> None:
+        self.assertEqual(classify_gewas(259, "Mais, snij-", "Bouwland"), GewasGebruik.GEBRUIK_VEEVOER)
+
+    def test_grasland_category_defaults_veevoer(self) -> None:
+        self.assertEqual(classify_gewas(99999, "Onbekend gras", "Grasland"), GewasGebruik.GEBRUIK_VEEVOER)
 
 
 class BboxTests(TestCase):
@@ -212,6 +224,8 @@ class GewassenSummaryViewTests(TestCase):
         self.assertAlmostEqual(row0["area_m2"], 1500.0)
         row1 = data[1]
         self.assertEqual(row1["gewascode"], 305)
+        self.assertEqual(row0["gebruik"], GewasGebruik.GEBRUIK_ONBEKEND)
+        self.assertEqual(row1["gebruik"], GewasGebruik.GEBRUIK_ONBEKEND)
 
     def test_gewassen_summary_limit_returns_top_row(self) -> None:
         url = reverse("gewassen-summary")
@@ -228,6 +242,95 @@ class GewassenSummaryViewTests(TestCase):
 
     def test_gewassen_summary_invalid_jaar(self) -> None:
         url = reverse("gewassen-summary")
+        response = self.client.get(url, {"jaar": "x"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_gewassen_summary_includes_gebruik_from_lookup(self) -> None:
+        GewasGebruik.objects.create(gewascode=201, gebruik=GewasGebruik.GEBRUIK_GEMENGD)
+        url = reverse("gewassen-summary")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        by_code = {row["gewascode"]: row for row in response.json()}
+        self.assertEqual(by_code[201]["gebruik"], GewasGebruik.GEBRUIK_GEMENGD)
+        self.assertEqual(by_code[305]["gebruik"], GewasGebruik.GEBRUIK_ONBEKEND)
+
+
+class GewasGebruikListViewTests(TestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        GewasGebruik.objects.create(gewascode=233, gebruik=GewasGebruik.GEBRUIK_GEMENGD)
+        GewasGebruik.objects.create(gewascode=259, gebruik=GewasGebruik.GEBRUIK_VEEVOER)
+
+    def test_gewasgebruik_list_ordered(self) -> None:
+        url = reverse("gewasgebruik-list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["gewascode"], 233)
+        self.assertEqual(data[0]["gebruik"], GewasGebruik.GEBRUIK_GEMENGD)
+        self.assertEqual(data[1]["gewascode"], 259)
+
+
+class GebruikSummaryViewTests(TestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.geometry = json.dumps(
+            {
+                "type": "Polygon",
+                "coordinates": [[[5.3, 52.2], [5.31, 52.2], [5.31, 52.21], [5.3, 52.21], [5.3, 52.2]]],
+            }
+        )
+        self.common = {
+            "jaar": 2025,
+            "status": "Definitief",
+            "geometry": self.geometry,
+            "min_lon": 5.3,
+            "min_lat": 52.2,
+            "max_lon": 5.31,
+            "max_lat": 52.21,
+        }
+        GewasGebruik.objects.create(gewascode=201, gebruik=GewasGebruik.GEBRUIK_GEMENGD)
+        GewasGebruik.objects.create(gewascode=202, gebruik=GewasGebruik.GEBRUIK_VEEVOER)
+        Gewasperceel.objects.create(
+            gewascode=201,
+            gewas="Wintertarwe",
+            category="Granen",
+            area_m2=1000.0,
+            geometry_hash="g1",
+            **self.common,
+        )
+        Gewasperceel.objects.create(
+            gewascode=202,
+            gewas="Gras",
+            category="Grasland",
+            area_m2=2000.0,
+            geometry_hash="g2",
+            **self.common,
+        )
+        Gewasperceel.objects.create(
+            gewascode=901,
+            gewas="Houtwal",
+            category="Landschapselement",
+            area_m2=500.0,
+            geometry_hash="l1",
+            **self.common,
+        )
+
+    def test_gebruik_summary_excludes_landschap_and_orders(self) -> None:
+        url = reverse("gebruik-summary")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        by_gebruik = {row["gebruik"]: row for row in data}
+        self.assertEqual(by_gebruik[GewasGebruik.GEBRUIK_VEEVOER]["parcel_count"], 1)
+        self.assertAlmostEqual(by_gebruik[GewasGebruik.GEBRUIK_VEEVOER]["area_m2"], 2000.0)
+        self.assertEqual(by_gebruik[GewasGebruik.GEBRUIK_GEMENGD]["parcel_count"], 1)
+        # Five buckets always present
+        self.assertEqual(len(data), 5)
+
+    def test_gebruik_summary_invalid_jaar(self) -> None:
+        url = reverse("gebruik-summary")
         response = self.client.get(url, {"jaar": "x"})
         self.assertEqual(response.status_code, 400)
 
@@ -330,8 +433,10 @@ class GewasperceelDetailViewTests(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["gewas"], "Wintertarwe")
-        self.assertEqual(response.json()["geometry"]["type"], "Polygon")
+        data = response.json()
+        self.assertEqual(data["gewas"], "Wintertarwe")
+        self.assertEqual(data["geometry"]["type"], "Polygon")
+        self.assertEqual(data["gebruik"], GewasGebruik.GEBRUIK_ONBEKEND)
 
     def test_retrieve_missing_parcel(self) -> None:
         url = reverse("perceel-detail", kwargs={"pk": 99999})

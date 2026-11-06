@@ -11,6 +11,24 @@ export interface GeoJsonGeometry {
   coordinates: unknown;
 }
 
+export type GewasGebruikKey =
+  | 'veevoer'
+  | 'voedsel'
+  | 'gemengd'
+  | 'niet_voedsel'
+  | 'onbekend';
+
+export interface GewasGebruikMap {
+  gewascode: number;
+  gebruik: GewasGebruikKey;
+}
+
+export interface GebruikSummary {
+  gebruik: GewasGebruikKey;
+  parcel_count: number;
+  area_m2: number | null;
+}
+
 export interface Gewasperceel {
   id: number;
   jaar: number;
@@ -20,6 +38,7 @@ export interface Gewasperceel {
   status: string;
   area_m2: number | null;
   geometry: GeoJsonGeometry;
+  gebruik: GewasGebruikKey;
 }
 
 export interface GewasSummary {
@@ -28,6 +47,7 @@ export interface GewasSummary {
   category: string;
   parcel_count: number;
   area_m2: number | null;
+  gebruik: GewasGebruikKey;
 }
 
 export interface CategorieSummary {
@@ -58,5 +78,13 @@ export class ApiService {
 
   getCategorieen(): Observable<CategorieSummary[]> {
     return this.http.get<CategorieSummary[]>('/api/categorieen/');
+  }
+
+  getGewasGebruik(): Observable<GewasGebruikMap[]> {
+    return this.http.get<GewasGebruikMap[]>('/api/gewasgebruik/');
+  }
+
+  getGebruikSummary(): Observable<GebruikSummary[]> {
+    return this.http.get<GebruikSummary[]>('/api/gebruik/');
   }
 }

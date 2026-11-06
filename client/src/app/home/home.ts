@@ -5,10 +5,19 @@ import { MatIconModule } from '@angular/material/icon';
 import { Map, NavigationControl, type ExpressionSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
 import { firstValueFrom } from 'rxjs';
 
-import { ApiService, type Gewasperceel, type GewasSummary } from '../api.service';
 import {
+  ApiService,
+  type GewasGebruikMap,
+  type GebruikSummary,
+  type Gewasperceel,
+  type GewasSummary,
+} from '../api.service';
+import {
+  buildGebruikFillColorExpression,
+  buildGebruikLegendEntries,
   buildGewasFillColorExpression,
   buildLegendEntries,
+  type ColorMode,
   type LegendEntry,
 } from '../crop-colors';
 import { PerceelDetailPanelComponent } from '../perceel-detail-panel/perceel-detail-panel';
@@ -52,6 +61,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   apiStatus = signal<string | null>(null);
   /** Top gewassen used for map colours + legend (from /api/gewassen/?limit=). */
   legendEntries = signal<LegendEntry[]>([]);
+  /** Map colouring: per gewas palette or veevoer/voedsel buckets from API. */
+  colorMode = signal<ColorMode>('gewas');
   selectedParcel = signal<Gewasperceel | null>(null);
   parcelLoading = signal(false);
   parcelError = signal<string | null>(null);
@@ -63,9 +74,25 @@ export class HomeComponent implements OnInit, OnDestroy {
   private tileJsonTiles: string[] | null = null;
   private tileJsonBounds: [number, number, number, number] | undefined;
 
+  private topGewassenForMap: GewasSummary[] = [];
+  private gewasFillExpression: ExpressionSpecification | null = null;
+  private gebruikFillExpression: ExpressionSpecification | null = null;
+  private gebruikSummaryRows: GebruikSummary[] = [];
+
   ngOnInit(): void {
+    this.colorMode.set(this.readColorModeFromQuery());
     void this.initMap();
     this.loadHealth();
+  }
+
+  setColorMode(mode: ColorMode): void {
+    if (this.colorMode() === mode) {
+      return;
+    }
+    this.colorMode.set(mode);
+    this.refreshLegendForColorMode();
+    this.applyActiveFillPaint();
+    this.updateUrlFromMap();
   }
 
   ngOnDestroy(): void {
@@ -95,8 +122,12 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.map.addControl(new NavigationControl(), 'top-right');
     this.map.on('load', () => {
       void (async () => {
-        const top = await this.fetchTopGewassen();
-        this.addParcelLayers(top);
+        const [top, mapping, gebruikSummary] = await Promise.all([
+          this.fetchTopGewassen(),
+          this.fetchGewasGebruik(),
+          this.fetchGebruikSummary(),
+        ]);
+        this.addParcelLayers(top, mapping, gebruikSummary);
       })();
     });
     this.map.on('moveend', () => this.updateUrlFromMap());
@@ -133,13 +164,41 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  private addParcelLayers(topGewassen: GewasSummary[]): void {
+  private async fetchGewasGebruik(): Promise<GewasGebruikMap[]> {
+    try {
+      return await firstValueFrom(this.api.getGewasGebruik());
+    } catch {
+      return [];
+    }
+  }
+
+  private async fetchGebruikSummary(): Promise<GebruikSummary[]> {
+    try {
+      return await firstValueFrom(this.api.getGebruikSummary());
+    } catch {
+      return [];
+    }
+  }
+
+  private addParcelLayers(
+    topGewassen: GewasSummary[],
+    gewasGebruik: GewasGebruikMap[],
+    gebruikSummary: GebruikSummary[],
+  ): void {
     if (!this.map || this.parcelLayersAdded) {
       return;
     }
 
-    this.legendEntries.set(buildLegendEntries(topGewassen));
-    const fillColor = buildGewasFillColorExpression(topGewassen);
+    this.topGewassenForMap = topGewassen;
+    this.gebruikSummaryRows = gebruikSummary;
+    this.gewasFillExpression = buildGewasFillColorExpression(topGewassen);
+    this.gebruikFillExpression =
+      gewasGebruik.length > 0
+        ? buildGebruikFillColorExpression(gewasGebruik)
+        : this.gewasFillExpression;
+
+    this.refreshLegendForColorMode();
+    const fillColor = this.activeFillExpression();
 
     const sourceSpec: {
       type: 'vector';
@@ -201,6 +260,10 @@ export class HomeComponent implements OnInit, OnDestroy {
       },
     });
 
+    if (gewasGebruik.length === 0 && this.colorMode() === 'gebruik') {
+      this.colorMode.set('gewas');
+    }
+
     this.map.addLayer({
       id: PERCELEN_OUTLINE_LAYER,
       type: 'line',
@@ -234,6 +297,37 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
 
     this.parcelLayersAdded = true;
+    this.applyActiveFillPaint();
+    this.updateUrlFromMap();
+  }
+
+  private activeFillExpression(): ExpressionSpecification {
+    if (this.colorMode() === 'gebruik' && this.gebruikFillExpression) {
+      return this.gebruikFillExpression;
+    }
+    return this.gewasFillExpression ?? buildGewasFillColorExpression([]);
+  }
+
+  private refreshLegendForColorMode(): void {
+    if (this.colorMode() === 'gebruik') {
+      this.legendEntries.set(buildGebruikLegendEntries(this.gebruikSummaryRows));
+      return;
+    }
+    this.legendEntries.set(buildLegendEntries(this.topGewassenForMap));
+  }
+
+  private applyActiveFillPaint(): void {
+    if (!this.map || !this.parcelLayersAdded || !this.map.getLayer(PERCELEN_FILL_LAYER)) {
+      return;
+    }
+    const fill = this.activeFillExpression();
+    this.map.setPaintProperty(PERCELEN_FILL_LAYER, 'fill-color', fill);
+    this.map.setPaintProperty(PERCELEN_FILL_LAYER, 'fill-outline-color', [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
+      '#1565c0',
+      fill,
+    ] as ExpressionSpecification);
   }
 
   private onParcelClick(event: MapLayerMouseEvent): void {
@@ -270,6 +364,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         gewas: tileGewas,
         category: String(tileProperties?.['category'] ?? ''),
         status: String(tileProperties?.['status'] ?? ''),
+        gebruik: 'onbekend',
         area_m2: null,
         geometry: { type: 'Polygon', coordinates: [] },
       });
@@ -340,6 +435,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
+  private readColorModeFromQuery(): ColorMode {
+    const kleur = this.route.snapshot.queryParamMap.get('kleur');
+    return kleur === 'gebruik' ? 'gebruik' : 'gewas';
+  }
+
   private getInitialMapState(): { center: [number, number]; zoom: number } {
     const params = this.route.snapshot.queryParamMap;
     const lat = params.get('lat');
@@ -374,6 +474,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     params.set('lat', lat.toFixed(5));
     params.set('lng', lng.toFixed(5));
     params.set('zoom', String(zoom));
+    if (this.colorMode() === 'gebruik') {
+      params.set('kleur', 'gebruik');
+    }
     return params.toString();
   }
 }

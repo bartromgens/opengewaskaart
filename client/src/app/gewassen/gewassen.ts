@@ -19,6 +19,7 @@ import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { ApiService, GewasSummary } from '../api.service';
+import { gebruikLabel } from '../crop-colors';
 
 @Component({
   selector: 'app-gewassen',
@@ -43,6 +44,7 @@ export class GewassenComponent implements OnInit, AfterViewInit {
   readonly displayedColumns: string[] = [
     'gewas',
     'gewascode',
+    'gebruik',
     'category',
     'parcel_count',
     'area_m2',
@@ -85,5 +87,9 @@ export class GewassenComponent implements OnInit, AfterViewInit {
       return null;
     }
     return row.area_m2 / 10_000;
+  }
+
+  formatGebruik(row: GewasSummary): string {
+    return gebruikLabel(row.gebruik);
   }
 }

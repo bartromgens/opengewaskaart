@@ -4,6 +4,38 @@
   height: 100%;
 }
 
+.map-color-control {
+  position: absolute;
+  top: 4.75rem;
+  right: 0.5rem;
+  z-index: 1;
+  padding: 0.45rem 0.55rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  font-size: 0.78rem;
+  max-width: min(12rem, 50vw);
+}
+
+.map-color-control-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.35rem;
+  font-size: 0.76rem;
+}
+
+.map-color-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  cursor: pointer;
+
+  input {
+    margin: 0;
+  }
+}
+
 .map-container {
   width: 100%;
   height: 100%;

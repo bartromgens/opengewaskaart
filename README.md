@@ -161,8 +161,17 @@ When you ingest new data or change the export area, repeat the ingest and export
 
 - Parcels are rendered from vector tiles (MBTiles via tileserver-gl), not raw GeoJSON.
 - Fill colour uses **substring rules on `gewas`** first (grasland → green, maïs → yellow, tarwe → orange), then the **eight most common gewassen** by parcel count from `GET /api/gewassen/?limit=8` (Landschapselement excluded); everything else is brown (`client/src/app/crop-colors.ts`).
-- Click a parcel to highlight it and load details from `GET /api/percelen/<id>/`.
+- The map can switch to **Veevoer / voedsel** colouring (radio control top-right). Colours and legend come from `GET /api/gewasgebruik/` (gewascode → gebruik) and area shares from `GET /api/gebruik/`. Add `?kleur=gebruik` to the URL to open in that mode.
+- Click a parcel to highlight it and load details from `GET /api/percelen/<id>/` (response includes `gebruik`).
 - Tile feature properties include `id`, `jaar`, `gewascode`, `gewas`, `category`, and `status` so client-side filtering can be added later with `map.setFilter()` without re-tiling.
+
+### Gewasgebruik (veevoer vs voedsel)
+
+BRP percelen do not state end use for grains and some other crops. The app stores a lookup table **`GewasGebruik`** (`gewascode` → `gebruik`: `veevoer`, `voedsel`, `gemengd`, `niet_voedsel`, `onbekend`), seeded on migrate (`api/gewasgebruik_seed.py`) and editable in **Django admin** without re-tiling.
+
+- `GET /api/gewasgebruik/` — full mapping for the map client
+- `GET /api/gebruik/` — parcel counts and summed `area_m2` per `gebruik` (Landschapselement excluded; optional `?jaar=`)
+- `GET /api/gewassen/` and `GET /api/percelen/<id>/` include a `gebruik` field resolved from the table (missing codes → `onbekend`)
 
 ### Gewassen overview
 

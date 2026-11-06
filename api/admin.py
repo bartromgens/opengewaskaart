@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Gewasperceel
+from .models import GewasGebruik, Gewasperceel
+
+
+@admin.register(GewasGebruik)
+class GewasGebruikAdmin(admin.ModelAdmin):
+    list_display = ("gewascode", "gebruik", "toelichting")
+    list_filter = ("gebruik",)
+    search_fields = ("gewascode", "toelichting")
 
 
 @admin.register(Gewasperceel)

@@ -35,6 +35,11 @@
             <td mat-cell *matCellDef="let row">{{ row.gewascode }}</td>
           </ng-container>
 
+          <ng-container matColumnDef="gebruik">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Gebruik</th>
+            <td mat-cell *matCellDef="let row">{{ formatGebruik(row) }}</td>
+          </ng-container>
+
           <ng-container matColumnDef="category">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Categorie</th>
             <td mat-cell *matCellDef="let row">{{ row.category }}</td>
