@@ -1,13 +1,7 @@
 import { DecimalPipe } from '@angular/common';
-import {
-  AfterViewInit,
-  Component,
-  OnInit,
-  ViewChild,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -26,6 +20,7 @@ import { gebruikLabel } from '../crop-colors';
   imports: [
     RouterLink,
     MatButtonModule,
+    MatCheckboxModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatTableModule,
@@ -35,15 +30,20 @@ import { gebruikLabel } from '../crop-colors';
   templateUrl: './gewassen.html',
   styleUrl: './gewassen.scss',
 })
-export class GewassenComponent implements OnInit, AfterViewInit {
+export class GewassenComponent implements OnInit {
   private api = inject(ApiService);
+
+  private static readonly FILTER_UNCLASSIFIED = 'gewassen-unclassified';
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  /** Show only gewassen without a GewasGebruik row (gebruik was defaulted). */
+  readonly filterUnclassifiedOnly = signal(false);
 
   readonly displayedColumns: string[] = [
     'gewas',
     'gewascode',
+    'geclassificeerd',
     'gebruik',
     'category',
     'parcel_count',
@@ -52,18 +52,30 @@ export class GewassenComponent implements OnInit, AfterViewInit {
 
   readonly dataSource = new MatTableDataSource<GewasSummary>([]);
 
-  @ViewChild(MatSort) sort?: MatSort;
+  /**
+   * Table + MatSort render only after loading=false (@if in template), so
+   * ngAfterViewInit runs too early. Connect sort when the view child appears.
+   */
+  @ViewChild(MatSort)
+  set sortHeader(s: MatSort | undefined) {
+    if (s) {
+      this.dataSource.sort = s;
+    }
+  }
 
   ngOnInit(): void {
+    this.dataSource.filterPredicate = (row, filter) => {
+      if (filter === GewassenComponent.FILTER_UNCLASSIFIED) {
+        return !row.gebruik_geclassificeerd;
+      }
+      return true;
+    };
+
     this.api.getGewassen().subscribe({
       next: (rows) => {
         this.dataSource.data = rows;
         this.loading.set(false);
-        queueMicrotask(() => {
-          if (this.sort) {
-            this.dataSource.sort = this.sort;
-          }
-        });
+        queueMicrotask(() => this.applyClassificationFilter());
       },
       error: (err: unknown) => {
         const msg =
@@ -76,12 +88,6 @@ export class GewassenComponent implements OnInit, AfterViewInit {
     });
   }
 
-  ngAfterViewInit(): void {
-    if (this.sort) {
-      this.dataSource.sort = this.sort;
-    }
-  }
-
   areaHa(row: GewasSummary): number | null {
     if (row.area_m2 == null) {
       return null;
@@ -91,5 +97,16 @@ export class GewassenComponent implements OnInit, AfterViewInit {
 
   formatGebruik(row: GewasSummary): string {
     return gebruikLabel(row.gebruik);
+  }
+
+  onFilterUnclassifiedChange(checked: boolean): void {
+    this.filterUnclassifiedOnly.set(checked);
+    this.applyClassificationFilter();
+  }
+
+  private applyClassificationFilter(): void {
+    this.dataSource.filter = this.filterUnclassifiedOnly()
+      ? GewassenComponent.FILTER_UNCLASSIFIED
+      : '';
   }
 }

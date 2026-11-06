@@ -62,6 +62,14 @@
   padding: 3rem 0;
 }
 
+.gewassen-toolbar {
+  margin-bottom: 0.75rem;
+
+  .gewassen-filter-check {
+    font-size: 0.9rem;
+  }
+}
+
 .gewassen-table-wrap {
   overflow: auto;
   border: 1px solid #e0e0e0;

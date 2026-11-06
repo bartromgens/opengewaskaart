@@ -48,6 +48,8 @@ export interface GewasSummary {
   parcel_count: number;
   area_m2: number | null;
   gebruik: GewasGebruikKey;
+  /** True when a GewasGebruik row exists; otherwise `gebruik` defaults to onbekend. */
+  gebruik_geclassificeerd: boolean;
 }
 
 export interface CategorieSummary {

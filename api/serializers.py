@@ -12,10 +12,18 @@ class GewassenSummarySerializer(serializers.Serializer):
     parcel_count = serializers.IntegerField()
     area_m2 = serializers.FloatField(allow_null=True)
     gebruik = serializers.SerializerMethodField()
+    # True if this gewascode has a row in GewasGebruik (else API gebruik defaults to onbekend).
+    gebruik_geclassificeerd = serializers.SerializerMethodField()
 
     def get_gebruik(self, obj: dict) -> str:
         mapping = self.context.get("gebruik_map") or {}
         return mapping.get(obj["gewascode"], GewasGebruik.GEBRUIK_ONBEKEND)
+
+    def get_gebruik_geclassificeerd(self, obj: dict) -> bool:
+        codes = self.context.get("gewas_gebruik_codes")
+        if not codes:
+            return False
+        return obj["gewascode"] in codes
 
 
 class CategorieSummarySerializer(serializers.Serializer):

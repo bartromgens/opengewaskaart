@@ -1,12 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import {
-  AfterViewInit,
-  Component,
-  OnInit,
-  ViewChild,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -34,7 +27,7 @@ import { ApiService, CategorieSummary } from '../api.service';
   templateUrl: './categorieen.html',
   styleUrl: './categorieen.scss',
 })
-export class CategorieenComponent implements OnInit, AfterViewInit {
+export class CategorieenComponent implements OnInit {
   private api = inject(ApiService);
 
   readonly loading = signal(true);
@@ -44,18 +37,18 @@ export class CategorieenComponent implements OnInit, AfterViewInit {
 
   readonly dataSource = new MatTableDataSource<CategorieSummary>([]);
 
-  @ViewChild(MatSort) sort?: MatSort;
+  @ViewChild(MatSort)
+  set sortHeader(s: MatSort | undefined) {
+    if (s) {
+      this.dataSource.sort = s;
+    }
+  }
 
   ngOnInit(): void {
     this.api.getCategorieen().subscribe({
       next: (rows) => {
         this.dataSource.data = rows;
         this.loading.set(false);
-        queueMicrotask(() => {
-          if (this.sort) {
-            this.dataSource.sort = this.sort;
-          }
-        });
       },
       error: (err: unknown) => {
         const msg =
@@ -66,12 +59,6 @@ export class CategorieenComponent implements OnInit, AfterViewInit {
         this.loading.set(false);
       },
     });
-  }
-
-  ngAfterViewInit(): void {
-    if (this.sort) {
-      this.dataSource.sort = this.sort;
-    }
   }
 
   areaHa(row: CategorieSummary): number | null {

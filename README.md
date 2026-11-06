@@ -175,6 +175,6 @@ BRP percelen do not state end use for grains and some other crops. The app store
 
 ### Gewassen overview
 
-The **Gewassen** page (`/gewassen`) lists each crop with parcel count and total surface area (hectares), aggregating `GET /api/gewassen/` (Landschapselement excluded). Optional `?limit=N` returns only the first N rows after ordering by parcel count (used by the map for colours). Parcel `area_m2` is set on ingest from the GeoPackage (RD `ST_Area`). For rows loaded before that field existed, run `python manage.py backfill_area` after `migrate`.
+The **Gewassen** page (`/gewassen`) lists each crop with parcel count and total surface area (hectares), aggregating `GET /api/gewassen/` (Landschapselement excluded). Each row includes `gebruik` (resolved from `GewasGebruik`, default `onbekend`) and `gebruik_geclassificeerd` (true only when a `GewasGebruik` row exists for that gewascode). The table can filter to show only unclassified codes. Optional `?limit=N` returns only the first N rows after ordering by parcel count (used by the map for colours). Parcel `area_m2` is set on ingest from the GeoPackage (RD `ST_Area`). For rows loaded before that field existed, run `python manage.py backfill_area` after `migrate`.
 
 The **Categorieën** page (`/categorieen`) lists land-use categories from `GET /api/categorieen/` (Landschapselement excluded, same as gewassen).

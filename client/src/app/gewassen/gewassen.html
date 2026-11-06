@@ -23,6 +23,15 @@
         <mat-spinner diameter="40"></mat-spinner>
       </div>
     } @else {
+      <div class="gewassen-toolbar">
+        <mat-checkbox
+          class="gewassen-filter-check"
+          [checked]="filterUnclassifiedOnly()"
+          (change)="onFilterUnclassifiedChange($event.checked)"
+        >
+          Alleen gewassen zonder classificatie in de database
+        </mat-checkbox>
+      </div>
       <div class="gewassen-table-wrap">
         <table mat-table matSort [dataSource]="dataSource" class="gewassen-table">
           <ng-container matColumnDef="gewas">
@@ -33,6 +42,15 @@
           <ng-container matColumnDef="gewascode">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
             <td mat-cell *matCellDef="let row">{{ row.gewascode }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="geclassificeerd">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="gebruik_geclassificeerd">
+              Classificatie
+            </th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.gebruik_geclassificeerd ? 'Ja' : 'Nee' }}
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="gebruik">

@@ -1,10 +1,34 @@
+.over-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.over-nav {
+  flex-shrink: 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #e0e0e0;
+
+  .back-to-map {
+    color: #2196f3;
+
+    mat-icon {
+      margin-right: 0.25rem;
+    }
+  }
+}
+
 .over-container {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   max-width: 700px;
   margin: 0 auto;
   padding: 1.5rem 1.25rem;
   line-height: 1.6;
   overflow-y: auto;
-  height: 100%;
   box-sizing: border-box;
 
   .note {

@@ -74,10 +74,16 @@ def gewassen_summary(request: Request) -> Response:
             return Response({"error": "Invalid limit parameter."}, status=400)
         rows = rows[:limit]
 
+    codes_in_gebruik_table = set(
+        GewasGebruik.objects.values_list("gewascode", flat=True)
+    )
     serializer = GewassenSummarySerializer(
         rows,
         many=True,
-        context={"gebruik_map": gebruik_by_gewascode()},
+        context={
+            "gebruik_map": gebruik_by_gewascode(),
+            "gewas_gebruik_codes": codes_in_gebruik_table,
+        },
     )
     return Response(serializer.data)
 
