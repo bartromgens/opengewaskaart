@@ -4,35 +4,39 @@
   height: 100%;
 }
 
-.map-color-control {
+.map-layer-toggle {
   position: absolute;
-  top: 4.75rem;
-  right: 0.5rem;
-  z-index: 1;
-  padding: 0.45rem 0.55rem 0.5rem;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-  font-size: 0.78rem;
-  max-width: min(12rem, 50vw);
-}
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 3px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(4px);
 
-.map-color-control-title {
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 0.35rem;
-  font-size: 0.76rem;
-}
+  --mat-button-toggle-height: 34px;
+  --mat-button-toggle-shape: 999px;
+  --mat-button-toggle-text-color: #4a4a4a;
+  --mat-button-toggle-label-text-size: 0.85rem;
+  --mat-button-toggle-label-text-weight: 500;
+  --mat-button-toggle-selected-state-background-color: var(--mat-sys-primary);
+  --mat-button-toggle-selected-state-text-color: var(--mat-sys-on-primary);
+  --mat-button-toggle-background-color: transparent;
+  --mat-button-toggle-divider-color: transparent;
 
-.map-color-option {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.2rem;
-  cursor: pointer;
+  .mat-button-toggle {
+    border-radius: 999px;
+    border: none;
+    overflow: hidden;
+    transition: background-color 150ms ease;
+  }
 
-  input {
-    margin: 0;
+  ::ng-deep .mat-button-toggle-label-content {
+    padding: 0 1rem;
+    line-height: 34px;
   }
 }
 
@@ -43,7 +47,7 @@
 
 .map-loading {
   position: absolute;
-  top: 1rem;
+  top: 4rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;

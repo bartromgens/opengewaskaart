@@ -1,9 +1,15 @@
 import { Location } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Map, NavigationControl, type ExpressionSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
+import {
+  Map,
+  NavigationControl,
+  type ExpressionSpecification,
+  type MapLayerMouseEvent,
+} from 'maplibre-gl';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -47,7 +53,12 @@ interface TileJson {
 
 @Component({
   selector: 'app-home',
-  imports: [MatIconModule, MatProgressSpinnerModule, PerceelDetailPanelComponent],
+  imports: [
+    MatButtonToggleModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    PerceelDetailPanelComponent,
+  ],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
@@ -273,9 +284,12 @@ export class HomeComponent implements OnInit, OnDestroy {
           'interpolate',
           ['linear'],
           ['zoom'],
-          5, selectedCase(0.92, 0.88),
-          13, selectedCase(0.9, 0.72),
-          16, selectedCase(0.9, 0.62),
+          5,
+          selectedCase(0.92, 0.88),
+          13,
+          selectedCase(0.9, 0.72),
+          16,
+          selectedCase(0.9, 0.62),
         ],
         // Same color as the fill, so shared edges do not draw a dark grid.
         'fill-outline-color': [
@@ -308,17 +322,23 @@ export class HomeComponent implements OnInit, OnDestroy {
           'interpolate',
           ['linear'],
           ['zoom'],
-          OUTLINE_MIN_ZOOM, selectedCase(1, 0),
-          13.5, selectedCase(1, 0.45),
-          15, selectedCase(1, 0.8),
+          OUTLINE_MIN_ZOOM,
+          selectedCase(1, 0),
+          13.5,
+          selectedCase(1, 0.45),
+          15,
+          selectedCase(1, 0.8),
         ],
         'line-width': [
           'interpolate',
           ['linear'],
           ['zoom'],
-          OUTLINE_MIN_ZOOM, selectedCase(2.5, 0.2),
-          14, selectedCase(2.5, 0.6),
-          16, selectedCase(2.5, 1.1),
+          OUTLINE_MIN_ZOOM,
+          selectedCase(2.5, 0.2),
+          14,
+          selectedCase(2.5, 0.6),
+          16,
+          selectedCase(2.5, 1.1),
         ],
       },
     });
@@ -377,10 +397,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.loadParcelDetail(parcelId, feature?.properties);
   }
 
-  private loadParcelDetail(
-    parcelId: number,
-    tileProperties?: Record<string, unknown>,
-  ): void {
+  private loadParcelDetail(parcelId: number, tileProperties?: Record<string, unknown>): void {
     this.parcelLoading.set(true);
     this.parcelError.set(null);
 
@@ -475,12 +492,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     const lng = params.get('lng');
     const zoom = params.get('zoom');
 
-    const lngValue =
-      lng != null && !Number.isNaN(Number(lng)) ? Number(lng) : DEFAULT_CENTER[0];
-    const latValue =
-      lat != null && !Number.isNaN(Number(lat)) ? Number(lat) : DEFAULT_CENTER[1];
-    const zoomValue =
-      zoom != null && !Number.isNaN(Number(zoom)) ? Number(zoom) : DEFAULT_MAP_ZOOM;
+    const lngValue = lng != null && !Number.isNaN(Number(lng)) ? Number(lng) : DEFAULT_CENTER[0];
+    const latValue = lat != null && !Number.isNaN(Number(lat)) ? Number(lat) : DEFAULT_CENTER[1];
+    const zoomValue = zoom != null && !Number.isNaN(Number(zoom)) ? Number(zoom) : DEFAULT_MAP_ZOOM;
 
     return {
       center: [lngValue, latValue],

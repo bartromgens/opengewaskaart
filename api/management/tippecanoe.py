@@ -352,6 +352,7 @@ def build_tippecanoe_command(
     detect_shared_borders: bool = False,
     include_attributes: Optional[Sequence[str]] = None,
     use_feature_id: bool = True,
+    preserve_input_order: bool = False,
 ) -> list[str]:
     tippecanoe_cmd = [
         tippecanoe_path,
@@ -376,6 +377,11 @@ def build_tippecanoe_command(
 
     for attribute in include_attributes or ():
         tippecanoe_cmd.extend(["--include", attribute])
+
+    if preserve_input_order:
+        # Otherwise tippecanoe reorders features spatially, so the draw order of
+        # overlapping features differs per area.
+        tippecanoe_cmd.append("--preserve-input-order")
 
     if coalesce:
         # Merge same-attribute polygons within a tile into one feature.

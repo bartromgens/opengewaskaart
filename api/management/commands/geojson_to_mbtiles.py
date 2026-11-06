@@ -208,6 +208,7 @@ class Command(BaseCommand):
                         drop_fraction=False,
                         include_attributes=OVERVIEW_ATTRIBUTES,
                         use_feature_id=False,
+                        preserve_input_order=True,
                         bbox=bbox,
                         force=True,
                     ),

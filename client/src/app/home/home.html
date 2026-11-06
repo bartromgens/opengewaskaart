@@ -8,27 +8,16 @@
     </div>
   }
 
-  <div class="map-color-control" aria-label="Kaartkleuring">
-    <div class="map-color-control-title">Kleuring</div>
-    <label class="map-color-option">
-      <input
-        type="radio"
-        name="colorMode"
-        [checked]="colorMode() === 'gewas'"
-        (change)="setColorMode('gewas')"
-      />
-      <span>Per gewas</span>
-    </label>
-    <label class="map-color-option">
-      <input
-        type="radio"
-        name="colorMode"
-        [checked]="colorMode() === 'gebruik'"
-        (change)="setColorMode('gebruik')"
-      />
-      <span>Veevoer / voedsel</span>
-    </label>
-  </div>
+  <mat-button-toggle-group
+    class="map-layer-toggle"
+    aria-label="Kaartlaag"
+    hideSingleSelectionIndicator
+    [value]="colorMode()"
+    (change)="setColorMode($event.value)"
+  >
+    <mat-button-toggle value="gewas">Gewassen</mat-button-toggle>
+    <mat-button-toggle value="gebruik">Veevoer / voedsel</mat-button-toggle>
+  </mat-button-toggle-group>
 
   @if (parcelLoading() || selectedParcel() || parcelError()) {
     <app-perceel-detail-panel
@@ -47,7 +36,10 @@
   }
 
   @if (legendEntries().length > 1) {
-    <div class="map-legend" [attr.aria-label]="colorMode() === 'gebruik' ? 'Legenda gebruik' : 'Legenda gewassen'">
+    <div
+      class="map-legend"
+      [attr.aria-label]="colorMode() === 'gebruik' ? 'Legenda gebruik' : 'Legenda gewassen'"
+    >
       <div class="map-legend-title">
         @if (colorMode() === 'gebruik') {
           Gebruik (oppervlakte)
