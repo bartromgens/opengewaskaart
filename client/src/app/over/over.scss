@@ -1,0 +1,14 @@
+.over-container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem;
+  line-height: 1.6;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+
+  .note {
+    color: #777;
+    font-style: italic;
+  }
+}

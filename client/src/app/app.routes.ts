@@ -15,6 +15,10 @@ export const routes: Routes = [
       import('./categorieen/categorieen').then((m) => m.CategorieenComponent),
   },
   {
+    path: 'over',
+    loadComponent: () => import('./over/over').then((m) => m.OverComponent),
+  },
+  {
     path: 'logs',
     loadComponent: () => import('./logs/logs').then((m) => m.LogsComponent),
     canActivate: [adminGuard],
