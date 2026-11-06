@@ -2,6 +2,7 @@
   <a routerLink="/" class="app-title">{{ title }}</a>
   <span class="spacer"></span>
   <a mat-button routerLink="/gewassen" routerLinkActive="active-nav-link">Gewassen</a>
+  <a mat-button routerLink="/categorieen" routerLinkActive="active-nav-link">Categorieën</a>
   @if (auth.isStaff()) {
     <a mat-button routerLink="/logs" routerLinkActive="active-nav-link">Logs</a>
   }

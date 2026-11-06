@@ -182,6 +182,14 @@ class GewassenSummaryViewTests(TestCase):
             **self.common,
         )
         Gewasperceel.objects.create(
+            gewascode=305,
+            gewas="Aardappel, consumptie-",
+            category="Aardappelen",
+            area_m2=100.0,
+            geometry_hash="a1",
+            **self.common,
+        )
+        Gewasperceel.objects.create(
             gewascode=901,
             gewas="Houtwal",
             category="Landschapselement",
@@ -195,16 +203,101 @@ class GewassenSummaryViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         data = response.json()
+        self.assertEqual(len(data), 2)
+        row0 = data[0]
+        self.assertEqual(row0["gewascode"], 201)
+        self.assertEqual(row0["gewas"], "Wintertarwe")
+        self.assertEqual(row0["category"], "Granen")
+        self.assertEqual(row0["parcel_count"], 2)
+        self.assertAlmostEqual(row0["area_m2"], 1500.0)
+        row1 = data[1]
+        self.assertEqual(row1["gewascode"], 305)
+
+    def test_gewassen_summary_limit_returns_top_row(self) -> None:
+        url = reverse("gewassen-summary")
+        response = self.client.get(url, {"limit": "1"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
         self.assertEqual(len(data), 1)
-        row = data[0]
-        self.assertEqual(row["gewascode"], 201)
-        self.assertEqual(row["gewas"], "Wintertarwe")
-        self.assertEqual(row["category"], "Granen")
-        self.assertEqual(row["parcel_count"], 2)
-        self.assertAlmostEqual(row["area_m2"], 1500.0)
+        self.assertEqual(data[0]["gewascode"], 201)
+
+    def test_gewassen_summary_invalid_limit(self) -> None:
+        url = reverse("gewassen-summary")
+        self.assertEqual(self.client.get(url, {"limit": "x"}).status_code, 400)
+        self.assertEqual(self.client.get(url, {"limit": "0"}).status_code, 400)
 
     def test_gewassen_summary_invalid_jaar(self) -> None:
         url = reverse("gewassen-summary")
+        response = self.client.get(url, {"jaar": "x"})
+        self.assertEqual(response.status_code, 400)
+
+
+class CategorieenSummaryViewTests(TestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.geometry = json.dumps(
+            {
+                "type": "Polygon",
+                "coordinates": [[[5.3, 52.2], [5.31, 52.2], [5.31, 52.21], [5.3, 52.21], [5.3, 52.2]]],
+            }
+        )
+        self.common = {
+            "jaar": 2025,
+            "status": "Definitief",
+            "geometry": self.geometry,
+            "min_lon": 5.3,
+            "min_lat": 52.2,
+            "max_lon": 5.31,
+            "max_lat": 52.21,
+        }
+        Gewasperceel.objects.create(
+            gewascode=201,
+            gewas="Wintertarwe",
+            category="Bouwland",
+            area_m2=1000.0,
+            geometry_hash="b1",
+            **self.common,
+        )
+        Gewasperceel.objects.create(
+            gewascode=202,
+            gewas="Gras",
+            category="Grasland",
+            area_m2=3000.0,
+            geometry_hash="g1",
+            **self.common,
+        )
+        Gewasperceel.objects.create(
+            gewascode=902,
+            gewas="Heg",
+            category="Landschapselement",
+            area_m2=50.0,
+            geometry_hash="l1",
+            **self.common,
+        )
+        Gewasperceel.objects.create(
+            gewascode=903,
+            gewas="Houtwal",
+            category="Landschapselement",
+            area_m2=150.0,
+            geometry_hash="l2",
+            **self.common,
+        )
+
+    def test_categorieen_summary_excludes_landschap(self) -> None:
+        url = reverse("categorieen-summary")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 2)
+        by_cat = {row["category"]: row for row in data}
+        self.assertEqual(by_cat["Grasland"]["parcel_count"], 1)
+        self.assertAlmostEqual(by_cat["Grasland"]["area_m2"], 3000.0)
+        self.assertEqual(by_cat["Bouwland"]["parcel_count"], 1)
+        self.assertAlmostEqual(by_cat["Bouwland"]["area_m2"], 1000.0)
+        self.assertNotIn("Landschapselement", by_cat)
+
+    def test_categorieen_summary_invalid_jaar(self) -> None:
+        url = reverse("categorieen-summary")
         response = self.client.get(url, {"jaar": "x"})
         self.assertEqual(response.status_code, 400)
 

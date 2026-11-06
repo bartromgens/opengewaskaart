@@ -3,9 +3,14 @@ import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } f
 import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Map, NavigationControl, type ExpressionSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
+import { firstValueFrom } from 'rxjs';
 
-import { ApiService, type Gewasperceel } from '../api.service';
-import { buildCategoryFillColorExpression } from '../crop-colors';
+import { ApiService, type Gewasperceel, type GewasSummary } from '../api.service';
+import {
+  buildGewasFillColorExpression,
+  buildLegendEntries,
+  type LegendEntry,
+} from '../crop-colors';
 import { PerceelDetailPanelComponent } from '../perceel-detail-panel/perceel-detail-panel';
 import { environment } from '../../environments/environment';
 
@@ -21,6 +26,7 @@ const DEFAULT_CENTER: [number, number] = [5.3, 52.2];
 // Boundaries are useful once a field is large enough to read. Below this zoom
 // a 1px stroke covers most of each parcel and hides the crop colors.
 const OUTLINE_MIN_ZOOM = 12;
+const MAP_GEWAS_COLOR_TOP_N = 8;
 
 interface TileJson {
   minzoom?: number;
@@ -44,6 +50,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   map: Map | null = null;
   apiStatus = signal<string | null>(null);
+  /** Top gewassen used for map colours + legend (from /api/gewassen/?limit=). */
+  legendEntries = signal<LegendEntry[]>([]);
   selectedParcel = signal<Gewasperceel | null>(null);
   parcelLoading = signal(false);
   parcelError = signal<string | null>(null);
@@ -85,7 +93,12 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
 
     this.map.addControl(new NavigationControl(), 'top-right');
-    this.map.on('load', () => this.addParcelLayers());
+    this.map.on('load', () => {
+      void (async () => {
+        const top = await this.fetchTopGewassen();
+        this.addParcelLayers(top);
+      })();
+    });
     this.map.on('moveend', () => this.updateUrlFromMap());
     this.map.on('click', PERCELEN_FILL_LAYER, (event) => this.onParcelClick(event));
     this.map.on('mouseenter', PERCELEN_FILL_LAYER, () => {
@@ -99,19 +112,34 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
     });
     this.map.on('click', (event) => {
-      const features = this.map?.queryRenderedFeatures(event.point, {
+      // Layer is added only after async fetch; querying missing layer throws.
+      if (!this.map || !this.map.getLayer(PERCELEN_FILL_LAYER)) {
+        return;
+      }
+      const features = this.map.queryRenderedFeatures(event.point, {
         layers: [PERCELEN_FILL_LAYER],
       });
-      if (!features?.length) {
+      if (!features.length) {
         this.closeDetailPanel();
       }
     });
   }
 
-  private addParcelLayers(): void {
+  private async fetchTopGewassen(): Promise<GewasSummary[]> {
+    try {
+      return await firstValueFrom(this.api.getGewassen(MAP_GEWAS_COLOR_TOP_N));
+    } catch {
+      return [];
+    }
+  }
+
+  private addParcelLayers(topGewassen: GewasSummary[]): void {
     if (!this.map || this.parcelLayersAdded) {
       return;
     }
+
+    this.legendEntries.set(buildLegendEntries(topGewassen));
+    const fillColor = buildGewasFillColorExpression(topGewassen);
 
     const sourceSpec: {
       type: 'vector';
@@ -139,7 +167,6 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.map.addSource(PERCELEN_SOURCE, sourceSpec);
 
-    const categoryColor = buildCategoryFillColorExpression();
     // zoom must be the top-level interpolate input. feature-state lives in the stops.
     const selectedCase = (selected: number, normal: number): ExpressionSpecification =>
       [
@@ -155,7 +182,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       source: PERCELEN_SOURCE,
       'source-layer': PERCELEN_LAYER,
       paint: {
-        'fill-color': categoryColor,
+        'fill-color': fillColor,
         'fill-opacity': [
           'interpolate',
           ['linear'],
@@ -169,7 +196,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           'case',
           ['boolean', ['feature-state', 'selected'], false],
           '#1565c0',
-          categoryColor,
+          fillColor,
         ],
       },
     });

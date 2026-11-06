@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface HealthResponse {
@@ -30,6 +30,12 @@ export interface GewasSummary {
   area_m2: number | null;
 }
 
+export interface CategorieSummary {
+  category: string;
+  parcel_count: number;
+  area_m2: number | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
@@ -42,7 +48,15 @@ export class ApiService {
     return this.http.get<Gewasperceel>(`/api/percelen/${id}/`);
   }
 
-  getGewassen(): Observable<GewasSummary[]> {
-    return this.http.get<GewasSummary[]>('/api/gewassen/');
+  getGewassen(limit?: number): Observable<GewasSummary[]> {
+    let params = new HttpParams();
+    if (limit !== undefined) {
+      params = params.set('limit', String(limit));
+    }
+    return this.http.get<GewasSummary[]>('/api/gewassen/', { params });
+  }
+
+  getCategorieen(): Observable<CategorieSummary[]> {
+    return this.http.get<CategorieSummary[]>('/api/categorieen/');
   }
 }

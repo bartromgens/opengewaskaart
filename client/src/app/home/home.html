@@ -16,4 +16,18 @@
       API: {{ status === 'ok' ? 'verbonden' : 'niet bereikbaar' }}
     </div>
   }
+
+  @if (legendEntries().length > 1) {
+    <div class="map-legend" aria-label="Legenda gewassen">
+      <div class="map-legend-title">Top gewassen (percelentelling)</div>
+      <ul class="map-legend-list">
+        @for (entry of legendEntries(); track entry.label) {
+          <li>
+            <span class="map-legend-swatch" [style.background-color]="entry.color"></span>
+            <span class="map-legend-label">{{ entry.label }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
 </div>

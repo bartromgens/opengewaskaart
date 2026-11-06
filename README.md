@@ -160,10 +160,12 @@ When you ingest new data or change the export area, repeat the ingest and export
 ## Map behaviour
 
 - Parcels are rendered from vector tiles (MBTiles via tileserver-gl), not raw GeoJSON.
-- Fill color is based on crop `category` (see `client/src/app/crop-colors.ts`).
+- Fill colour uses **substring rules on `gewas`** first (grasland → green, maïs → yellow, tarwe → orange), then the **eight most common gewassen** by parcel count from `GET /api/gewassen/?limit=8` (Landschapselement excluded); everything else is brown (`client/src/app/crop-colors.ts`).
 - Click a parcel to highlight it and load details from `GET /api/percelen/<id>/`.
 - Tile feature properties include `id`, `jaar`, `gewascode`, `gewas`, `category`, and `status` so client-side filtering can be added later with `map.setFilter()` without re-tiling.
 
 ### Gewassen overview
 
-The **Gewassen** page (`/gewassen`) lists each crop with parcel count and total surface area (hectares), aggregating `GET /api/gewassen/` (Landschapselement excluded). Parcel `area_m2` is set on ingest from the GeoPackage (RD `ST_Area`). For rows loaded before that field existed, run `python manage.py backfill_area` after `migrate`.
+The **Gewassen** page (`/gewassen`) lists each crop with parcel count and total surface area (hectares), aggregating `GET /api/gewassen/` (Landschapselement excluded). Optional `?limit=N` returns only the first N rows after ordering by parcel count (used by the map for colours). Parcel `area_m2` is set on ingest from the GeoPackage (RD `ST_Area`). For rows loaded before that field existed, run `python manage.py backfill_area` after `migrate`.
+
+The **Categorieën** page (`/categorieen`) lists land-use categories from `GET /api/categorieen/` (Landschapselement excluded, same as gewassen).

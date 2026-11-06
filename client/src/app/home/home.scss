@@ -34,3 +34,52 @@
     color: #c62828;
   }
 }
+
+.map-legend {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  max-width: min(18rem, 42vw);
+  max-height: 40vh;
+  overflow: auto;
+  padding: 0.5rem 0.65rem 0.65rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  font-size: 0.8rem;
+  z-index: 1;
+}
+
+.map-legend-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+}
+
+.map-legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.map-legend-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+.map-legend-swatch {
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.map-legend-label {
+  color: #444;
+  line-height: 1.25;
+  word-break: break-word;
+}

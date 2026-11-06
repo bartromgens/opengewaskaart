@@ -13,6 +13,12 @@ class GewassenSummarySerializer(serializers.Serializer):
     area_m2 = serializers.FloatField(allow_null=True)
 
 
+class CategorieSummarySerializer(serializers.Serializer):
+    category = serializers.CharField()
+    parcel_count = serializers.IntegerField()
+    area_m2 = serializers.FloatField(allow_null=True)
+
+
 class GewasperceelSerializer(serializers.ModelSerializer):
     geometry = serializers.SerializerMethodField()
 

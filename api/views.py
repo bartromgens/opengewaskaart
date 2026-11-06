@@ -15,7 +15,11 @@ from rest_framework.response import Response
 from api.brp_constants import EXCLUDED_MBTILES_CATEGORIES
 from api.log_files import list_log_files, parse_line_count, read_log_file, resolve_log_file
 from api.models import Gewasperceel
-from api.serializers import GewassenSummarySerializer, GewasperceelSerializer
+from api.serializers import (
+    CategorieSummarySerializer,
+    GewassenSummarySerializer,
+    GewasperceelSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +43,7 @@ class GewasperceelDetailView(RetrieveAPIView):
 @permission_classes([AllowAny])
 def gewassen_summary(request: Request) -> Response:
     jaar_param = request.query_params.get("jaar")
+    limit_param = request.query_params.get("limit")
     queryset = Gewasperceel.objects.exclude(category__in=EXCLUDED_MBTILES_CATEGORIES)
     if jaar_param is not None:
         try:
@@ -52,7 +57,37 @@ def gewassen_summary(request: Request) -> Response:
         .annotate(parcel_count=Count("id"), area_m2=Sum("area_m2"))
         .order_by("-parcel_count")
     )
+    if limit_param is not None:
+        try:
+            limit = int(limit_param)
+        except ValueError:
+            return Response({"error": "Invalid limit parameter."}, status=400)
+        if limit < 1:
+            return Response({"error": "Invalid limit parameter."}, status=400)
+        rows = rows[:limit]
+
     serializer = GewassenSummarySerializer(rows, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def categorieen_summary(request: Request) -> Response:
+    jaar_param = request.query_params.get("jaar")
+    queryset = Gewasperceel.objects.exclude(category__in=EXCLUDED_MBTILES_CATEGORIES)
+    if jaar_param is not None:
+        try:
+            jaar = int(jaar_param)
+        except ValueError:
+            return Response({"error": "Invalid jaar parameter."}, status=400)
+        queryset = queryset.filter(jaar=jaar)
+
+    rows = (
+        queryset.values("category")
+        .annotate(parcel_count=Count("id"), area_m2=Sum("area_m2"))
+        .order_by("-parcel_count")
+    )
+    serializer = CategorieSummarySerializer(rows, many=True)
     return Response(serializer.data)
 
 

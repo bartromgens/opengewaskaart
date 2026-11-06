@@ -10,6 +10,11 @@ export const routes: Routes = [
     loadComponent: () => import('./gewassen/gewassen').then((m) => m.GewassenComponent),
   },
   {
+    path: 'categorieen',
+    loadComponent: () =>
+      import('./categorieen/categorieen').then((m) => m.CategorieenComponent),
+  },
+  {
     path: 'logs',
     loadComponent: () => import('./logs/logs').then((m) => m.LogsComponent),
     canActivate: [adminGuard],

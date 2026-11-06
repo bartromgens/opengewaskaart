@@ -5,6 +5,7 @@ from .views import (
     admin_log_content,
     admin_logs,
     admin_status,
+    categorieen_summary,
     gewassen_summary,
     health_check,
 )
@@ -12,6 +13,7 @@ from .views import (
 urlpatterns = [
     path("health/", health_check, name="health-check"),
     path("gewassen/", gewassen_summary, name="gewassen-summary"),
+    path("categorieen/", categorieen_summary, name="categorieen-summary"),
     path("percelen/<int:pk>/", GewasperceelDetailView.as_view(), name="perceel-detail"),
     path("admin/status/", admin_status, name="admin-status"),
     path("admin/logs/", admin_logs, name="admin-logs"),
