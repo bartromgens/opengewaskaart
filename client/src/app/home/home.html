@@ -35,7 +35,7 @@
     />
   }
 
-  @if (apiStatus(); as status) {
+  @if (showApiStatus && apiStatus(); as status) {
     <div class="health-badge" [class.error]="status === 'error'">
       <mat-icon>{{ status === 'ok' ? 'check_circle' : 'error' }}</mat-icon>
       API: {{ status === 'ok' ? 'verbonden' : 'niet bereikbaar' }}

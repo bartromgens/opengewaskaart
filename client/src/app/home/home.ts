@@ -17,6 +17,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   Map as MapLibreMap,
   NavigationControl,
+  Popup,
   type ExpressionSpecification,
   type MapLayerMouseEvent,
 } from 'maplibre-gl';
@@ -63,6 +64,7 @@ const DEFAULT_CENTER: [number, number] = [5.3, 52.2];
 // Boundaries are useful once a field is large enough to read. Below this zoom
 // a 1px stroke covers most of each parcel and hides the crop colors.
 const OUTLINE_MIN_ZOOM = 12;
+const HOVER_GEWAS_MIN_ZOOM = 11;
 const MAP_GEWAS_COLOR_TOP_N = 8;
 const VIEWPORT_GEWASSEN_TOP_N = 10;
 const VIEWPORT_GEWASSEN_DYNAMIC_TOP_N = 15;
@@ -103,6 +105,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
 
   map: MapLibreMap | null = null;
+  readonly showApiStatus = !environment.production;
   apiStatus = signal<string | null>(null);
   /** True until the parcel layer is added and its tiles have finished loading. */
   mapLoading = signal(true);
@@ -158,13 +161,16 @@ export class HomeComponent implements OnInit, OnDestroy {
   private viewportRequestId = 0;
   private viewportShowsWholeCountry = signal(true);
   private viewportFetchAllowed = false;
+  private hoverGewasPopup: Popup | null = null;
 
   ngOnInit(): void {
     this.colorMode.set(this.readColorModeFromQuery());
     this.viewportColors.set(this.readViewportColorsFromQuery());
     this.pendingGewasFilterCodes = this.readGewasCodesFromQuery();
     void this.initMap();
-    this.loadHealth();
+    if (this.showApiStatus) {
+      this.loadHealth();
+    }
   }
 
   setColorMode(mode: ColorMode): void {
@@ -206,6 +212,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       clearTimeout(this.viewportFetchTimer);
       this.viewportFetchTimer = null;
     }
+    this.clearHoverGewasPopup();
     this.map?.remove();
   }
 
@@ -249,6 +256,12 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
 
     this.map.addControl(new NavigationControl(), 'top-right');
+    this.hoverGewasPopup = new Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 12,
+      className: 'parcel-gewas-popup',
+    });
     this.map.on('load', () => {
       void (async () => {
         const [top, mapping, allGewassen, summary] = await Promise.all([
@@ -294,9 +307,16 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.map.getCanvas().style.cursor = 'pointer';
       }
     });
+    this.map.on('mousemove', PERCELEN_FILL_LAYER, (event) => this.onParcelHoverMove(event));
     this.map.on('mouseleave', PERCELEN_FILL_LAYER, () => {
       if (this.map) {
         this.map.getCanvas().style.cursor = '';
+      }
+      this.clearHoverGewasPopup();
+    });
+    this.map.on('zoom', () => {
+      if (this.map && this.map.getZoom() < HOVER_GEWAS_MIN_ZOOM) {
+        this.clearHoverGewasPopup();
       }
     });
     this.map.on('click', (event) => {
@@ -579,6 +599,35 @@ export class HomeComponent implements OnInit, OnDestroy {
       '#1565c0',
       fill,
     ] as ExpressionSpecification);
+  }
+
+  private onParcelHoverMove(event: MapLayerMouseEvent): void {
+    if (!this.map || !this.hoverGewasPopup) {
+      return;
+    }
+    if (this.map.getZoom() < HOVER_GEWAS_MIN_ZOOM) {
+      this.clearHoverGewasPopup();
+      return;
+    }
+    const feature = event.features?.[0];
+    const gewas = feature?.properties?.['gewas'];
+    if (typeof gewas !== 'string' || gewas.length === 0) {
+      this.clearHoverGewasPopup();
+      return;
+    }
+    const lngLat = event.lngLat;
+    this.hoverGewasPopup.setText(gewas);
+    if (!this.hoverGewasPopup.isOpen()) {
+      this.hoverGewasPopup.setLngLat(lngLat).addTo(this.map);
+    } else {
+      this.hoverGewasPopup.setLngLat(lngLat);
+    }
+  }
+
+  private clearHoverGewasPopup(): void {
+    if (this.hoverGewasPopup?.isOpen()) {
+      this.hoverGewasPopup.remove();
+    }
   }
 
   private onParcelClick(event: MapLayerMouseEvent): void {
