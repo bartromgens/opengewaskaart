@@ -65,6 +65,7 @@ import {
 } from '../map/parcel-layers';
 import { loadTileConfig, type TileConfig } from '../map/tilejson';
 import { bboxParam, isWholeCountryView } from '../map/viewport';
+import { TrackingService } from '../tracking.service';
 import { environment } from '../../environments/environment';
 
 const HOVER_GEWAS_MIN_ZOOM = 11;
@@ -92,6 +93,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private location = inject(Location);
   private route = inject(ActivatedRoute);
+  private tracking = inject(TrackingService);
 
   map: MapLibreMap | null = null;
   mapLoading = signal(true);
@@ -165,6 +167,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
     this.colorMode.set(mode);
+    this.tracking.trackEvent('Map Interaction', 'Color Mode', mode);
     this.refreshLegendForColorMode();
     this.applyActiveFillPaint();
     this.updateUrlFromMap();
@@ -178,6 +181,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
     this.viewportColors.set(enabled);
+    this.tracking.trackEvent('Map Interaction', 'Viewport Colors', enabled ? 'on' : 'off');
     this.refreshLegendForColorMode();
     this.applyActiveFillPaint();
     this.scheduleViewportGewassenRefresh();
@@ -185,6 +189,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   onGewasFilterChange(selected: GewasSummary[]): void {
+    const name = selected.length > 0 ? selected.map((row) => row.gewascode).join(',') : 'all';
+    this.tracking.trackEvent('Map Interaction', 'Gewas Filter', name);
     this.selectedGewassen.set(selected);
     this.applyParcelLayerGewasFilter();
     this.refreshLegendForColorMode();
@@ -334,6 +340,19 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.map.on('moveend', () => {
       this.updateUrlFromMap();
       this.scheduleViewportGewassenRefresh();
+    });
+    this.map.on('zoomend', () => {
+      if (!this.map) {
+        return;
+      }
+      this.tracking.trackEvent(
+        'Map Interaction',
+        'Zoom',
+        `Level ${Math.round(this.map.getZoom())}`,
+      );
+    });
+    this.map.on('dragend', () => {
+      this.tracking.trackEvent('Map Interaction', 'Drag');
     });
     this.map.on('click', PERCELEN_FILL_LAYER, (event) => this.onParcelClick(event));
     this.map.on('mouseenter', PERCELEN_FILL_LAYER, () => {
@@ -531,6 +550,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     event.preventDefault();
+    this.tracking.trackEvent('Map Interaction', 'Parcel Click', String(parcelId));
     this.selectFeature(parcelId);
     this.loadParcelDetail(parcelId, feature?.properties);
   }
