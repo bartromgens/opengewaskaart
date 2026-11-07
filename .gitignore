@@ -22,6 +22,7 @@ local_settings.py
 config/settings_local.py
 db.sqlite3
 staticfiles/
+var/
 
 # Node / Angular
 node_modules/

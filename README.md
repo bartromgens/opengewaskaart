@@ -178,3 +178,38 @@ BRP percelen do not state end use for grains and some other crops. The app store
 The **Gewassen** page (`/gewassen`) lists each crop with parcel count and total surface area (hectares), aggregating `GET /api/gewassen/` (Landschapselement excluded). Each row includes `gebruik` (resolved from `GewasGebruik`, default `onbekend`) and `gebruik_geclassificeerd` (true only when a `GewasGebruik` row exists for that gewascode). The table can filter to show only unclassified codes. Optional `?limit=N` returns only the first N rows after ordering by parcel count (used by the map for colours). Parcel `area_m2` is set on ingest from the GeoPackage (RD `ST_Area`). For rows loaded before that field existed, run `python manage.py backfill_area` after `migrate`.
 
 The **Categorieën** page (`/categorieen`) lists land-use categories from `GET /api/categorieen/` (Landschapselement excluded, same as gewassen).
+
+## Deployment
+
+Production runs on the same VPS as [opengrondwaterkaart](https://opengrondwaterkaart.nl): host nginx terminates TLS and proxies to Docker Compose services on localhost:
+
+| Path | Service | Local port |
+|------|---------|------------|
+| `/` | Angular (nginx) | `127.0.0.1:3080` |
+| `/api/`, `/admin/`, `/static/` | Django (gunicorn) | `127.0.0.1:8080` |
+| `/tiles/` | tileserver-gl | `127.0.0.1:4080` |
+
+SQLite lives in `./var/` on the host (mounted into the API container). MBTiles and `data/config.json` live in `./data/`.
+
+**First-time VPS setup**
+
+1. Clone the repo to `/home/bart/opengewaskaart` on the server.
+2. Copy `config/settings_local.py.example` to `config/settings_local.py` and use the production block (see comments in the example).
+3. Create `var/`, run ingest/export on the host (or copy `db.sqlite3` and `data/gewaspercelen.mbtiles`), then install the host vhost from [`nginx/opengewaskaart.conf`](nginx/opengewaskaart.conf) (certbot steps are documented in that file).
+4. `docker compose -f docker-compose.prod.yml up -d`
+
+**Deploy updates**
+
+Push to `origin/master`, then from your machine:
+
+```bash
+./deploy.sh
+```
+
+This SSHs to the VPS, pulls, rebuilds images, restarts containers, and runs `migrate` and `collectstatic`.
+
+Management commands on production:
+
+```bash
+docker compose -f docker-compose.prod.yml exec api python manage.py <command>
+```

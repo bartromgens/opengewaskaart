@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8080:8000"
+    volumes:
+      - ./config/settings_local.py:/app/config/settings_local.py:ro
+      - ./log:/app/log
+      - ./var:/app/var
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:3080:80"
+    restart: unless-stopped
+
+  tileserver-gl:
+    image: maptiler/tileserver-gl:latest
+    command: ["--public_url", "https://opengewaskaart.nl/tiles"]
+    ports:
+      - "127.0.0.1:4080:8080"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

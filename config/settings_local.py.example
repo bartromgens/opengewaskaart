@@ -5,3 +5,18 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 # Path to tippecanoe binary (used by export_to_mbtiles / geojson_to_mbtiles).
 # Defaults to looking up "tippecanoe" on the system PATH; set this if it's not on your PATH.
 # TIPPECANOE_PATH = "~/bin/tippecanoe/tippecanoe"
+
+# Production (VPS: copy to config/settings_local.py on the server, do not commit):
+# DEBUG = False
+# SECRET_KEY = "generate-a-long-random-secret"
+# ALLOWED_HOSTS = ["opengewaskaart.nl", "www.opengewaskaart.nl"]
+# CSRF_TRUSTED_ORIGINS = [
+#     "https://opengewaskaart.nl",
+#     "https://www.opengewaskaart.nl",
+# ]
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": "/app/var/db.sqlite3",
+#     }
+# }
