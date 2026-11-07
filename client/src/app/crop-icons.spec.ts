@@ -12,7 +12,9 @@ describe('cropIconPath', () => {
     expect(cropIconPath('Wintertarwe')).toContain('wheat.svg');
     expect(cropIconPath('Aardappel, consumptie-')).toContain('russet-potato.svg');
     expect(cropIconPath('Bloembollen, tulp')).toContain('tulip.svg');
-    expect(cropIconPath('Suikerbiet')).toContain('beet.svg');
+    expect(cropIconPath('Suikerbiet')).toContain('original/sugar-beet.svg');
+    expect(cropIconPath('Bieten, suiker-')).toContain('original/sugar-beet.svg');
+    expect(cropIconPath('Bieten, voeder-')).toContain('open-crop-icons/beet.svg');
     expect(cropIconPath('Ui, zaai-ui')).toContain('yellow-onion.svg');
     expect(cropIconPath('Uien, zilver-')).toContain('yellow-onion.svg');
     expect(cropIconPath('Uien, poot en plant, 1e jaars')).toContain('yellow-onion.svg');

@@ -10,3 +10,7 @@ Angular build output at /assets/crop-icons/.
 
 Original icons in original/ (grasland, tulip, flower-bulb) are part of OpenGewasKaart
 and licensed under the same terms as the application (MIT).
+
+sugar-beet.svg is a recolor of the CC0 beet icon (cream root, green leaves) so
+suikerbiet is not shown as a red beet. It is kept here because upstream has no
+sugar-beet icon.

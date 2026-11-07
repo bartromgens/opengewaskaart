@@ -10,12 +10,12 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {
+  GeolocateControl,
   Map as MapLibreMap,
+  Marker,
   NavigationControl,
   Popup,
   type ExpressionSpecification,
@@ -68,6 +68,7 @@ import { bboxParam, isWholeCountryView } from '../map/viewport';
 import { environment } from '../../environments/environment';
 
 const HOVER_GEWAS_MIN_ZOOM = 11;
+const USER_LOCATION_ZOOM = 10;
 const MAP_GEWAS_COLOR_TOP_N = 8;
 const VIEWPORT_GEWASSEN_TOP_N = 10;
 const VIEWPORT_GEWASSEN_DYNAMIC_TOP_N = 15;
@@ -78,9 +79,7 @@ const VIEWPORT_GEWASSEN_DEBOUNCE_MS = 400;
   imports: [
     GewasFilterComponent,
     MapLegendComponent,
-    MatButtonModule,
     MatButtonToggleModule,
-    MatIconModule,
     MatProgressSpinnerModule,
     PerceelDetailPanelComponent,
   ],
@@ -95,8 +94,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
 
   map: MapLibreMap | null = null;
-  readonly showApiStatus = !environment.production;
-  apiStatus = signal<string | null>(null);
   mapLoading = signal(true);
   legendEntries = signal<LegendEntry[]>([]);
   colorMode = signal<ColorMode>('gewas');
@@ -153,6 +150,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private viewportShowsWholeCountry = signal(true);
   private viewportFetchAllowed = false;
   private hoverGewasPopup: Popup | null = null;
+  private userLocationMarker: Marker | null = null;
 
   ngOnInit(): void {
     const urlState = readMapUrlState(this.route.snapshot.queryParamMap);
@@ -160,9 +158,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.viewportColors.set(urlState.viewportColors);
     this.pendingGewasFilterCodes = urlState.gewasCodes;
     void this.initMap(urlState);
-    if (this.showApiStatus) {
-      this.loadHealth();
-    }
   }
 
   setColorMode(mode: ColorMode): void {
@@ -205,6 +200,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.viewportFetchTimer = null;
     }
     this.clearHoverGewasPopup();
+    this.userLocationMarker?.remove();
+    this.userLocationMarker = null;
     this.map?.remove();
   }
 
@@ -225,9 +222,14 @@ export class HomeComponent implements OnInit, OnDestroy {
       center: urlState.center,
       zoom: Math.max(cfg.minZoom, Math.min(cfg.maxZoom, urlState.zoom)),
       minZoom: cfg.minZoom,
+      locale: {
+        'GeolocateControl.FindMyLocation': 'Mijn locatie',
+        'GeolocateControl.LocationNotAvailable': 'Locatie niet beschikbaar',
+      },
     });
 
     this.map.addControl(new NavigationControl(), 'top-right');
+    this.addUserLocationControl();
     this.hoverGewasPopup = new Popup({
       closeButton: false,
       closeOnClick: false,
@@ -236,6 +238,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
 
     this.map.on('load', () => {
+      this.collapseMapAttribution();
       void (async () => {
         const [top, mapping, allGewassen, summary] = await Promise.all([
           fetchOr(this.api.getGewassen({ limit: MAP_GEWAS_COLOR_TOP_N }), []),
@@ -251,6 +254,56 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
 
     this.registerMapEvents();
+  }
+
+  /** MapLibre starts the attribution bar expanded; keep the info button until it is opened. */
+  private collapseMapAttribution(): void {
+    const container = this.map?.getContainer().querySelector('.maplibregl-ctrl-attrib');
+    if (!(container instanceof HTMLDetailsElement)) {
+      return;
+    }
+    container.classList.remove('maplibregl-compact-show');
+    container.removeAttribute('open');
+  }
+
+  private addUserLocationControl(): void {
+    if (!this.map) {
+      return;
+    }
+
+    const control = new GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 6000,
+      },
+      trackUserLocation: false,
+      showUserLocation: false,
+      fitBoundsOptions: {
+        maxZoom: USER_LOCATION_ZOOM,
+        zoom: USER_LOCATION_ZOOM,
+      },
+    });
+    control.on('geolocate', (event) => {
+      this.showUserLocation(event.coords.longitude, event.coords.latitude);
+    });
+    this.map.addControl(control, 'top-right');
+  }
+
+  private showUserLocation(longitude: number, latitude: number): void {
+    if (!this.map) {
+      return;
+    }
+
+    const lngLat: [number, number] = [longitude, latitude];
+    if (!this.userLocationMarker) {
+      const element = document.createElement('div');
+      element.className = 'maplibregl-user-location-dot';
+      this.userLocationMarker = new Marker({ element }).setLngLat(lngLat).addTo(this.map);
+      return;
+    }
+
+    this.userLocationMarker.setLngLat(lngLat);
   }
 
   private registerMapEvents(): void {
@@ -514,13 +567,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       setParcelFeatureSelected(this.map, this.selectedFeatureId, false);
     }
     this.selectedFeatureId = null;
-  }
-
-  private loadHealth(): void {
-    this.api.getHealth().subscribe({
-      next: (response) => this.apiStatus.set(response.status),
-      error: () => this.apiStatus.set('error'),
-    });
   }
 
   private updateUrlFromMap(): void {

@@ -176,6 +176,12 @@ const PARCEL_ICON_CASES: readonly ParcelIconCase[] = [
     matches: (g) => g.includes('tarwe') || g.includes('triticale') || g.startsWith('granen,'),
   },
   {
+    mapId: 'crop-sugar-beet',
+    url: ORIG('sugar-beet'),
+    when: ['all', has('biet'), has('suiker')],
+    matches: (g) => g.includes('biet') && g.includes('suiker'),
+  },
+  {
     mapId: 'crop-beet',
     url: OPEN('beet'),
     when: has('biet'),

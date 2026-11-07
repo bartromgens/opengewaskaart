@@ -112,9 +112,3 @@ $map-breakpoint: 760px;
   display: none;
 }
 
-@media (max-width: $map-breakpoint) {
-  :host.gewas-filter-host-expanded {
-    flex: 1 1 100%;
-    min-width: 0;
-  }
-}

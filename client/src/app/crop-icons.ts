@@ -74,6 +74,10 @@ const CROP_ICON_RULES: readonly CropIconRule[] = [
     iconPath: OPEN_ICON('wheat'),
     matches: (g) => g.includes('tarwe') || g.includes('triticale') || g.startsWith('granen,'),
   },
+  {
+    iconPath: ORIGINAL_ICON('sugar-beet'),
+    matches: (g) => g.includes('biet') && g.includes('suiker'),
+  },
   { iconPath: OPEN_ICON('beet'), matches: (g) => g.includes('biet') },
   { iconPath: OPEN_ICON('shallot'), matches: (g) => g.includes('sjalot') },
   {
