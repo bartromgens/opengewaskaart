@@ -165,6 +165,12 @@ When you ingest new data or change the export area, repeat the ingest and export
 - Click a parcel to highlight it and load details from `GET /api/percelen/<id>/` (response includes `gebruik`).
 - Tile feature properties include `id`, `jaar`, `gewascode`, `gewas`, `category`, and `status` so client-side filtering can be added later with `map.setFilter()` without re-tiling.
 
+### One crop per parcel per year
+
+The BRP records the crop standing on a parcel on the reference date, **15 May**. Each parcel therefore has one main crop per year (`Gewasperceel` is unique on `jaar` + `geometry_hash`). A second crop in the same year (a vegetable after harvest, a catch crop or green manure) is not in the data.
+
+Winter and summer crops are separate crops in the BRP, distinguished only by name (for example `Tarwe, winter-` and `Tarwe, zomer-`); there is no season field. Winter crops are sown in autumn and appear in the data for the harvest year, not the sowing year. The map shows the crop in spring, not the full growing cycle of a parcel. The same note is on the About page (`/over`).
+
 ### Gewasgebruik (veevoer vs voedsel)
 
 BRP percelen do not state end use for grains and some other crops. The app stores a lookup table **`GewasGebruik`** (`gewascode` → `gebruik`: `veevoer`, `voedsel`, `gemengd`, `niet_voedsel`, `onbekend`), seeded on migrate (`api/gewasgebruik_seed.py`) and editable in **Django admin** without re-tiling.
