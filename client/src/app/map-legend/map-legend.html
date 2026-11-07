@@ -1,4 +1,4 @@
-@if (smallScreen() && hasLegendContent() && !legendOpen()) {
+@if (smallScreen() && hasLegendContent() && !legendOpen() && !isCompactGebruik()) {
   <button
     type="button"
     mat-stroked-button
@@ -15,9 +15,10 @@
   <div
     id="map-legend-stack"
     class="map-legend-stack"
-    [class.map-legend-stack-sheet]="smallScreen()"
+    [class.map-legend-stack-sheet]="smallScreen() && !isCompactGebruik()"
+    [class.map-legend-stack-compact]="isCompactGebruik()"
   >
-    @if (smallScreen()) {
+    @if (smallScreen() && !isCompactGebruik()) {
       <div class="map-legend-sheet-header">
         <span>Legenda</span>
         <button
@@ -31,7 +32,7 @@
       </div>
     }
 
-    @if (showViewportPanel() || viewportLoading()) {
+    @if (showViewportLegend()) {
       <div class="map-viewport-ranking" aria-label="Top gewassen in beeld" aria-live="polite">
         <div class="map-legend-title map-viewport-ranking-header">
           <span>In beeld (oppervlakte)</span>
@@ -63,20 +64,27 @@
       </div>
     }
 
-    @if (entries().length > 1 || hasSelection()) {
+    @if (
+      (colorMode() === 'gebruik' && entries().length > 0) || entries().length > 1 || hasSelection()
+    ) {
       <div
         class="map-legend"
+        [class.map-legend-compact]="isCompactGebruik()"
         [attr.aria-label]="colorMode() === 'gebruik' ? 'Legenda gebruik' : 'Legenda gewassen'"
       >
-        <div class="map-legend-title">{{ legendTitle() }}</div>
-        <ul class="map-legend-list">
+        @if (!isCompactGebruik()) {
+          <div class="map-legend-title">{{ legendTitle() }}</div>
+        }
+        <ul class="map-legend-list" [class.map-legend-list-compact]="isCompactGebruik()">
           @for (entry of entries(); track entry.label) {
-            <li>
+            <li [class.map-legend-chip]="isCompactGebruik()">
               <span class="map-legend-swatch" [style.background-color]="entry.color"></span>
               @if (colorMode() === 'gewas' && cropIconPath(entry.label); as icon) {
                 <img class="crop-gewas-icon" [src]="icon" alt="" />
               }
-              <span class="map-legend-label">{{ entry.label }}</span>
+              <span class="map-legend-label">{{
+                isCompactGebruik() ? (entry.shortLabel ?? entry.label) : entry.label
+              }}</span>
             </li>
           }
         </ul>

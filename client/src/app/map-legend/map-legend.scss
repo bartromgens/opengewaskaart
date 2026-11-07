@@ -149,12 +149,65 @@ $map-breakpoint: 760px;
   word-break: break-word;
 }
 
+.map-legend-stack-compact {
+  bottom: 0;
+  right: 0;
+  left: 0;
+  max-width: none;
+  gap: 0;
+  z-index: 3;
+}
+
+.map-legend-compact {
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  padding: 0.3rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+  font-size: 0.7rem;
+  border-radius: 8px 8px 0 0;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.12);
+}
+
+.map-legend-list-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.45rem;
+  align-items: center;
+}
+
+.map-legend-list-compact li {
+  margin-top: 0;
+}
+
+.map-legend-chip {
+  gap: 0.25rem;
+
+  .map-legend-swatch {
+    width: 0.6rem;
+    height: 0.6rem;
+  }
+
+  .map-legend-label {
+    font-size: 0.68rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: $map-breakpoint) {
   .map-legend-stack {
     left: 0.5rem;
     right: 0.5rem;
     bottom: 2.5rem;
     max-width: none;
+  }
+
+  .map-legend-stack.map-legend-stack-compact {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
   }
 
   .map-legend-stack.map-legend-stack-sheet {
@@ -191,5 +244,10 @@ $map-breakpoint: 760px;
   :host-context(.map-layout:has(.detail-panel)) .map-legend-stack {
     bottom: calc(40vh + 0.5rem);
     max-height: min(35vh, 40%);
+  }
+
+  :host-context(.map-layout:has(.detail-panel)) .map-legend-stack.map-legend-stack-compact {
+    bottom: 40vh;
+    max-height: none;
   }
 }

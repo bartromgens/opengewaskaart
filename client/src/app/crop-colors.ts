@@ -335,6 +335,7 @@ export function buildGewasFillColorExpression(top: GewasSummary[]): ExpressionSp
 export interface LegendEntry {
   label: string;
   color: string;
+  shortLabel?: string;
 }
 
 export function buildLegendEntries(top: GewasSummary[]): LegendEntry[] {
@@ -407,6 +408,7 @@ export function buildGebruikLegendEntries(summary: GebruikSummary[]): LegendEntr
     }
     entries.push({
       label: `${gebruikLabel(g)} — ${haStr}${pctStr}`,
+      shortLabel: gebruikLabel(g),
       color: GEBRUIK_COLORS[g],
     });
   }

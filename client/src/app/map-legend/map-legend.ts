@@ -39,15 +39,25 @@ export class MapLegendComponent {
   readonly smallScreen = injectSmallScreen();
   readonly legendOpen = signal(false);
 
-  readonly hasLegendContent = computed(
+  readonly isCompactGebruik = computed(() => this.smallScreen() && this.colorMode() === 'gebruik');
+
+  readonly showViewportLegend = computed(
     () =>
-      this.showViewportPanel() ||
-      this.viewportLoading() ||
-      this.entries().length > 1 ||
-      this.hasSelection(),
+      !this.smallScreen() &&
+      this.colorMode() === 'gewas' &&
+      (this.showViewportPanel() || this.viewportLoading()),
   );
 
-  readonly showLegendStack = computed(() => !this.smallScreen() || this.legendOpen());
+  readonly hasLegendContent = computed(() => {
+    if (this.colorMode() === 'gebruik' && this.entries().length > 0) {
+      return true;
+    }
+    return this.showViewportLegend() || this.entries().length > 1 || this.hasSelection();
+  });
+
+  readonly showLegendStack = computed(
+    () => !this.smallScreen() || this.legendOpen() || this.isCompactGebruik(),
+  );
 
   readonly viewportTotalAreaM2 = computed(() =>
     this.viewportRows().reduce((sum, row) => sum + (row.areaM2 ?? 0), 0),
