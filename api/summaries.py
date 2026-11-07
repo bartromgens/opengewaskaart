@@ -123,23 +123,24 @@ def fetch_categorieen_summary_rows(jaar_param: str | None) -> list[dict[str, Any
 
 
 def fetch_gebruik_summary_rows(jaar_param: str | None) -> list[dict[str, Any]]:
-    jaar = None if jaar_param is None else parse_jaar_param(jaar_param)
-    queryset = gewassen_base_queryset(jaar)
-    gebruik_map = gebruik_by_gewascode()
+    cache_key = f"gebruik_totals:{jaar_param}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
 
-    cache_key = f"gebruik_summary:{jaar_param}"
-    per_code = cache.get(cache_key)
-    if per_code is None:
-        per_code = list(
-            queryset.values("gewascode").annotate(
-                parcel_count=Count("id"), area_m2=Sum("area_m2")
-            )
-        )
-        cache.set(cache_key, per_code, settings.SUMMARY_CACHE_SECONDS)
+    # Roll up the national gewas summary. Grouping by gewascode alone makes
+    # SQLite use the non-covering gewascode index and read every geometry.
+    rows, _is_national = fetch_gewassen_summary_rows(
+        jaar_param=jaar_param,
+        limit=None,
+        bbox_param=None,
+        gewas_codes=None,
+    )
+    gebruik_map = gebruik_by_gewascode()
 
     parcels: dict[str, int] = defaultdict(int)
     areas: dict[str, float] = defaultdict(float)
-    for row in per_code:
+    for row in rows:
         code = int(row["gewascode"])
         g = gebruik_map.get(code, GewasGebruik.GEBRUIK_ONBEKEND)
         parcels[g] += row["parcel_count"]
@@ -178,6 +179,7 @@ def fetch_gebruik_summary_rows(jaar_param: str | None) -> list[dict[str, Any]]:
                 "area_m2": am2 if am2 > 0 else None,
             }
         )
+    cache.set(cache_key, out, settings.SUMMARY_CACHE_SECONDS)
     return out
 
 

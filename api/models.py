@@ -55,10 +55,19 @@ class Gewasperceel(models.Model):
             models.Index(fields=["jaar"]),
             models.Index(fields=["gewascode"]),
             models.Index(fields=["min_lon", "max_lon", "min_lat", "max_lat"]),
-            # National summaries aggregate these columns. Without this, SQLite
-            # reads the geometry text for every parcel (the bulk of the file).
+            # Summaries aggregate these columns. The bbox columns are included so a
+            # viewport query can filter without reading each parcel's geometry.
             models.Index(
-                fields=["category", "gewascode", "gewas", "area_m2"],
+                fields=[
+                    "category",
+                    "gewascode",
+                    "gewas",
+                    "area_m2",
+                    "min_lon",
+                    "max_lon",
+                    "min_lat",
+                    "max_lat",
+                ],
                 name="gewasperceel_summary_cover",
             ),
         ]
