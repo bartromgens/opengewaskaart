@@ -1,12 +1,10 @@
 import { Component } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { RouterLink } from '@angular/router';
+
+import { BackToMapComponent } from '../shared/back-to-map';
 
 @Component({
   selector: 'app-over',
-  imports: [MatButtonModule, MatIconModule, RouterLink],
+  imports: [BackToMapComponent],
   templateUrl: './over.html',
-  styleUrl: './over.scss',
 })
 export class OverComponent {}

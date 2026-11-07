@@ -1,25 +1,21 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { ApiService, GewasSummary } from '../api.service';
 import { gebruikLabel } from '../crop-colors';
 import { cropIconPath } from '../crop-icons';
+import { BackToMapComponent } from '../shared/back-to-map';
 
 @Component({
   selector: 'app-gewassen',
   imports: [
-    RouterLink,
-    MatButtonModule,
+    BackToMapComponent,
     MatCheckboxModule,
-    MatIconModule,
     MatProgressSpinnerModule,
     MatTableModule,
     MatSortModule,

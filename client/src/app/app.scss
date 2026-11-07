@@ -1,10 +1,10 @@
+@use '../styles/breakpoints' as bp;
+
 :host {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-
-$app-breakpoint: 760px;
 
 .app-toolbar {
   flex-shrink: 0;
@@ -13,9 +13,9 @@ $app-breakpoint: 760px;
 .app-nav-desktop {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 0.25rem;
 
-  @media (max-width: $app-breakpoint) {
+  @media (max-width: bp.$breakpoint-mobile) {
     display: none;
   }
 }
@@ -23,39 +23,20 @@ $app-breakpoint: 760px;
 .app-nav-menu-trigger {
   display: none;
 
-  @media (max-width: $app-breakpoint) {
+  @media (max-width: bp.$breakpoint-mobile) {
     display: inline-flex;
   }
 }
 
-@media (max-width: $app-breakpoint) {
-  .app-title {
-    font-size: 16px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-  }
-}
-
 .app-title {
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-  font-size: 18px;
-  font-weight: 600;
-  text-decoration: none;
-  color: inherit;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .spacer {
   flex: 1;
-}
-
-.active-nav-link {
-  font-weight: 600;
-  opacity: 1 !important;
 }
 
 .main-content {

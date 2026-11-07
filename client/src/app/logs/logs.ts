@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +10,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { AuthService } from '../auth.service';
 import { LogFileContent, LogFileInfo, LogsService } from '../logs.service';
+import { BackToMapComponent } from '../shared/back-to-map';
 
 const LINE_OPTIONS = [500, 2000, 5000, 10000];
 const AUTO_REFRESH_MS = 5000;
@@ -18,7 +19,7 @@ const PREFERRED_LOG = 'management.log';
 @Component({
   selector: 'app-logs',
   imports: [
-    RouterLink,
+    BackToMapComponent,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
@@ -97,10 +98,10 @@ export class LogsComponent implements OnInit, OnDestroy {
 
   lineClass(line: string): string {
     if (line.includes(' ERROR ') || line.includes(' CRITICAL ')) {
-      return 'log-error';
+      return 'ogk-code-error';
     }
     if (line.includes(' WARNING ')) {
-      return 'log-warning';
+      return 'ogk-code-warning';
     }
     return '';
   }

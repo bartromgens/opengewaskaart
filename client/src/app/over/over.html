@@ -1,60 +1,54 @@
-<div class="over-wrapper">
-  <nav class="over-nav">
-    <a mat-button routerLink="/" class="back-to-map">
-      <mat-icon>arrow_back</mat-icon>
-      Terug naar kaart
-    </a>
-  </nav>
-  <div class="over-container">
-    <h1>Over OpenGewasKaart</h1>
+<div class="ogk-page ogk-page-narrow ogk-prose">
+  <app-back-to-map />
 
-    <h2>Wat laat de kaart zien?</h2>
-    <p>
-      OpenGewasKaart toont alle landbouwpercelen in Nederland op een interactieve kaart, ingekleurd
-      naar het gewas dat er is geteeld. Klik op een perceel voor meer details.
-    </p>
+  <h1>Over OpenGewasKaart</h1>
 
-    <h2>Waar komt de data vandaan?</h2>
-    <p>
-      De gegevens komen uit de
-      <a
-        href="https://service.pdok.nl/rvo/gewaspercelen/atom/basisregistratie_gewaspercelen_brp.xml"
-        target="_blank"
-        rel="noopener"
-        >Basisregistratie Gewaspercelen (BRP)</a
-      >
-      van RVO, beschikbaar gesteld via PDOK. Het zijn jaarlijkse datasets met het gewas per perceel,
-      met peildatum 15 mei.
-    </p>
+  <h2>Wat laat de kaart zien?</h2>
+  <p>
+    OpenGewasKaart toont alle landbouwpercelen in Nederland op een interactieve kaart, ingekleurd
+    naar het gewas dat er is geteeld. Klik op een perceel voor meer details.
+  </p>
 
-    <h2>Eén gewas per perceel per jaar</h2>
-    <p>
-      De BRP legt per perceel het gewas vast dat op 15 mei op het land staat. Er is dus maar één
-      hoofdgewas per perceel per jaar. Een tweede teelt in hetzelfde jaar, zoals een groente na de
-      oogst, een vanggewas of een groenbemester, staat niet in de data.
-    </p>
-    <p>
-      Wintergewassen, zoals wintertarwe en wintergerst, worden in het najaar gezaaid en staan op 15
-      mei van het volgende jaar op het land. Ze staan daarom in de data van het oogstjaar en niet in
-      het jaar van zaaien. Winter en zomer zijn aparte gewassen in de BRP, bijvoorbeeld "Tarwe,
-      winter-" en "Tarwe, zomer-". Er is geen apart veld voor het teeltseizoen.
-    </p>
-    <p>
-      De kaart laat dus het gewas in het voorjaar zien. Ze laat niet de hele teeltcyclus van een
-      perceel in dat jaar zien.
-    </p>
+  <h2>Waar komt de data vandaan?</h2>
+  <p>
+    De gegevens komen uit de
+    <a
+      href="https://service.pdok.nl/rvo/gewaspercelen/atom/basisregistratie_gewaspercelen_brp.xml"
+      target="_blank"
+      rel="noopener"
+      >Basisregistratie Gewaspercelen (BRP)</a
+    >
+    van RVO, beschikbaar gesteld via PDOK. Het zijn jaarlijkse datasets met het gewas per perceel,
+    met peildatum 15 mei.
+  </p>
 
-    <h2>Iconen</h2>
-    <p>
-      Gewasicoonen in de legenda komen uit
-      <a href="https://github.com/openfarmcc/open-crop-icons" target="_blank" rel="noopener"
-        >Open Crop Icons</a
-      >
-      (CC0). Aanvullende iconen voor grasland en bloembollen zijn door OpenGewasKaart toegevoegd.
-      Het suikerbieticoon is een herkleuring van het rode bieticoon uit die set: een crèmewortel in
-      plaats van een rode biet.
-    </p>
+  <h2>Eén gewas per perceel per jaar</h2>
+  <p>
+    De BRP legt per perceel het gewas vast dat op 15 mei op het land staat. Er is dus maar één
+    hoofdgewas per perceel per jaar. Een tweede teelt in hetzelfde jaar, zoals een groente na de
+    oogst, een vanggewas of een groenbemester, staat niet in de data.
+  </p>
+  <p>
+    Wintergewassen, zoals wintertarwe en wintergerst, worden in het najaar gezaaid en staan op 15
+    mei van het volgende jaar op het land. Ze staan daarom in de data van het oogstjaar en niet in
+    het jaar van zaaien. Winter en zomer zijn aparte gewassen in de BRP, bijvoorbeeld "Tarwe,
+    winter-" en "Tarwe, zomer-". Er is geen apart veld voor het teeltseizoen.
+  </p>
+  <p>
+    De kaart laat dus het gewas in het voorjaar zien. Ze laat niet de hele teeltcyclus van een
+    perceel in dat jaar zien.
+  </p>
 
-    <p class="note">Deze pagina wordt later uitgebreid.</p>
-  </div>
+  <h2>Iconen</h2>
+  <p>
+    Gewasicoonen in de legenda komen uit
+    <a href="https://github.com/openfarmcc/open-crop-icons" target="_blank" rel="noopener"
+      >Open Crop Icons</a
+    >
+    (CC0). Aanvullende iconen voor grasland en bloembollen zijn door OpenGewasKaart toegevoegd. Het
+    suikerbieticoon is een herkleuring van het rode bieticoon uit die set: een crèmewortel in plaats
+    van een rode biet.
+  </p>
+
+  <p class="ogk-muted"><em>Deze pagina wordt later uitgebreid.</em></p>
 </div>

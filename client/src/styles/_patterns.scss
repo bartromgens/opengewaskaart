@@ -1,0 +1,349 @@
+@use 'breakpoints' as bp;
+
+:root {
+  --ogk-hairline: var(--mat-sys-outline-variant);
+  --ogk-overlay-bg: color-mix(in srgb, var(--mat-sys-surface) 94%, transparent);
+  --ogk-overlay-blur: blur(10px);
+  --ogk-overlay-radius: 14px;
+  --ogk-overlay-shadow:
+    0 4px 18px rgb(0 0 0 / 0.14), 0 0 0 1px color-mix(in srgb, var(--ogk-hairline) 60%, transparent);
+  --ogk-table-radius: 12px;
+  --ogk-toolbar-height: 56px;
+}
+
+@mixin ogk-overlay-surface {
+  background: var(--ogk-overlay-bg);
+  backdrop-filter: var(--ogk-overlay-blur);
+  box-shadow: var(--ogk-overlay-shadow);
+  color: var(--mat-sys-on-surface);
+}
+
+// Map overlays
+
+.ogk-overlay {
+  @include ogk-overlay-surface;
+  border-radius: var(--ogk-overlay-radius);
+}
+
+.ogk-overlay-pill {
+  @include ogk-overlay-surface;
+  border-radius: 999px;
+}
+
+.ogk-overlay-pill.mat-mdc-outlined-button {
+  @include ogk-overlay-surface;
+  --mat-button-outlined-container-height: 34px;
+  --mat-button-outlined-container-shape: 999px;
+  --mat-button-outlined-outline-color: transparent;
+  --mat-button-outlined-label-text-color: var(--mat-sys-on-surface);
+  padding: 0 0.85rem;
+  font-weight: 500;
+}
+
+.ogk-divider-top {
+  border-top: 1px solid var(--ogk-hairline);
+}
+
+.ogk-divider-bottom {
+  border-bottom: 1px solid var(--ogk-hairline);
+}
+
+.ogk-segmented {
+  --mat-button-toggle-height: 34px;
+  --mat-button-toggle-shape: 999px;
+  --mat-button-toggle-text-color: var(--mat-sys-on-surface-variant);
+  --mat-button-toggle-label-text-size: 0.85rem;
+  --mat-button-toggle-label-text-weight: 500;
+  --mat-button-toggle-background-color: transparent;
+  --mat-button-toggle-divider-color: transparent;
+  --mat-button-toggle-selected-state-background-color: var(--mat-sys-primary);
+  --mat-button-toggle-selected-state-text-color: var(--mat-sys-on-primary);
+  padding: 3px;
+  border: none;
+
+  .mat-button-toggle {
+    border: none;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .mat-button-toggle-label-content {
+    padding: 0 1rem;
+    line-height: 34px;
+  }
+
+  @media (max-width: bp.$breakpoint-mobile) {
+    --mat-button-toggle-height: 32px;
+    --mat-button-toggle-label-text-size: 0.78rem;
+
+    .mat-button-toggle-label-content {
+      padding: 0 0.7rem;
+      line-height: 32px;
+    }
+  }
+}
+
+// Search field, suggestions and selected chips
+
+.ogk-search-field {
+  --mat-form-field-outlined-container-shape: 24px;
+  --mat-form-field-outlined-outline-color: transparent;
+  --mat-form-field-outlined-hover-outline-color: var(--mat-sys-outline);
+  --mat-form-field-outlined-focus-outline-width: 2px;
+  --mat-form-field-container-height: 48px;
+  --mat-form-field-container-vertical-padding: 12px;
+
+  .mat-mdc-form-field-icon-prefix > .mat-icon {
+    padding: 0 0.5rem 0 1rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .mat-mdc-form-field-infix {
+    min-height: 0;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    background: var(--mat-sys-surface-container-lowest);
+    border-radius: 999px;
+    box-shadow: var(--ogk-overlay-shadow);
+  }
+
+  .mat-mdc-form-field-icon-suffix {
+    padding-right: 0.25rem;
+  }
+}
+
+.ogk-autocomplete-panel.mat-mdc-autocomplete-panel {
+  --mat-autocomplete-container-shape: var(--ogk-overlay-radius);
+  --mat-autocomplete-background-color: var(--mat-sys-surface-container-lowest);
+  margin-top: 0.4rem;
+  padding: 0.35rem;
+  box-shadow: var(--ogk-overlay-shadow);
+
+  .mat-mdc-option {
+    position: relative;
+    min-height: 48px;
+    border-radius: 8px;
+  }
+
+  .mat-mdc-option:not(:last-of-type)::after {
+    content: '';
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0;
+    left: 0.75rem;
+    border-bottom: 1px solid var(--ogk-hairline);
+  }
+
+  .mat-mdc-option:hover:not(.mdc-list-item--disabled),
+  .mat-mdc-option.mat-mdc-option-active {
+    background: color-mix(in srgb, var(--mat-sys-primary) 10%, transparent);
+  }
+}
+
+.ogk-chips {
+  --mat-chip-container-shape-radius: 999px;
+  --mat-chip-elevated-container-color: var(--mat-sys-secondary-container);
+  --mat-chip-label-text-color: var(--mat-sys-on-secondary-container);
+  --mat-chip-outline-width: 0;
+
+  .mat-mdc-chip {
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.18);
+  }
+
+  --mat-chip-with-trailing-icon-trailing-icon-color: var(--mat-sys-on-secondary-container);
+}
+
+.ogk-map-popup {
+  pointer-events: none;
+
+  .maplibregl-popup-content {
+    @include ogk-overlay-surface;
+    padding: 0.35rem 0.6rem;
+    border-radius: 8px;
+    font: var(--mat-sys-body-medium);
+  }
+
+  .maplibregl-popup-tip {
+    display: none;
+  }
+}
+
+.ogk-map-popup-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 16rem;
+}
+
+.ogk-map-popup-icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  object-fit: contain;
+}
+
+// Toolbar and navigation
+
+.ogk-toolbar.mat-toolbar {
+  --mat-toolbar-container-background-color: var(--mat-sys-surface);
+  --mat-toolbar-container-text-color: var(--mat-sys-on-surface);
+  --mat-toolbar-standard-height: var(--ogk-toolbar-height);
+  --mat-toolbar-mobile-height: var(--ogk-toolbar-height);
+  border-bottom: 1px solid var(--ogk-hairline);
+}
+
+.ogk-wordmark {
+  color: var(--mat-sys-primary);
+  font-family: var(--mat-sys-title-medium-font);
+  font-size: 18px;
+  font-weight: 500;
+  text-decoration: none;
+
+  @media (max-width: bp.$breakpoint-mobile) {
+    font-size: 16px;
+  }
+}
+
+.ogk-nav-link.mat-mdc-button {
+  --mat-button-text-container-shape: 999px;
+  --mat-button-text-label-text-color: var(--mat-sys-on-surface-variant);
+  font-weight: 500;
+}
+
+.ogk-nav-link.mat-mdc-button.ogk-nav-link-active {
+  --mat-button-text-label-text-color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+}
+
+// Content pages
+
+.ogk-page {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 1.75rem 1.5rem 2rem;
+  overflow: auto;
+}
+
+.ogk-page-fill {
+  display: flex;
+  flex-direction: column;
+}
+
+.ogk-page-narrow {
+  padding-inline: max(1.5rem, calc((100% - 44rem) / 2));
+}
+
+.ogk-back-link.mat-mdc-button {
+  --mat-button-text-label-text-color: var(--mat-sys-primary);
+  margin: -0.5rem 0 0.75rem -0.75rem;
+}
+
+.ogk-page-title {
+  margin: 0 0 0.5rem;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-headline-large);
+  letter-spacing: -0.01em;
+}
+
+.ogk-page-lead {
+  max-width: 42rem;
+  margin: 0 0 1.25rem;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-large);
+}
+
+.ogk-prose {
+  font: var(--mat-sys-body-large);
+  line-height: 1.65;
+
+  h1 {
+    margin: 0 0 1rem;
+    font: var(--mat-sys-headline-large);
+    letter-spacing: -0.01em;
+  }
+
+  h2 {
+    margin: 2rem 0 0.5rem;
+    font: var(--mat-sys-title-large);
+  }
+
+  p {
+    margin: 0 0 1rem;
+  }
+
+  a {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.ogk-muted {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.ogk-error {
+  color: var(--mat-sys-error);
+}
+
+.ogk-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.ogk-data-table {
+  --mat-table-background-color: transparent;
+  --mat-table-row-item-outline-color: var(--ogk-hairline);
+  --mat-table-header-container-height: 48px;
+  --mat-table-row-item-container-height: 48px;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--ogk-hairline);
+  border-radius: var(--ogk-table-radius);
+  background: var(--mat-sys-surface);
+
+  table {
+    width: 100%;
+  }
+
+  .mat-mdc-header-cell {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--mat-sys-surface-container);
+    color: var(--mat-sys-on-surface-variant);
+    font-weight: 500;
+  }
+
+  .mat-mdc-row:hover {
+    background: color-mix(in srgb, var(--mat-sys-primary) 6%, transparent);
+  }
+
+  .ogk-numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ogk-numeric .mat-sort-header-container {
+    justify-content: flex-end;
+  }
+}
+
+.ogk-code-block {
+  min-height: 0;
+  overflow: auto;
+  padding: 0.85rem 1rem;
+  border-radius: var(--ogk-table-radius);
+  background: var(--mat-sys-inverse-surface);
+  color: var(--mat-sys-inverse-on-surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+
+  .ogk-code-error {
+    color: #ff8a80;
+  }
+
+  .ogk-code-warning {
+    color: #ffd54f;
+  }
+}

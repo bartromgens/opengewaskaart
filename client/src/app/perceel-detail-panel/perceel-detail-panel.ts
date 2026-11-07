@@ -1,4 +1,5 @@
 import { Component, input, output } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 import type { Gewasperceel, GewasGebruikKey } from '../api.service';
@@ -7,7 +8,7 @@ import { cropIconPath } from '../crop-icons';
 
 @Component({
   selector: 'app-perceel-detail-panel',
-  imports: [MatIconModule],
+  imports: [MatButtonModule, MatIconModule],
   templateUrl: './perceel-detail-panel.html',
   styleUrl: './perceel-detail-panel.scss',
 })

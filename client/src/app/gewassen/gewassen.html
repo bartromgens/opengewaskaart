@@ -1,98 +1,93 @@
-<div class="gewassen-wrapper">
-  <nav class="gewassen-nav">
-    <a mat-button routerLink="/" class="back-to-map">
-      <mat-icon>arrow_back</mat-icon>
-      Terug naar kaart
-    </a>
-  </nav>
+<div class="ogk-page ogk-page-fill">
+  <app-back-to-map />
+  <header>
+    <h1 class="ogk-page-title">Gewassen</h1>
+    <p class="ogk-page-lead">
+      Overzicht per gewas (zonder landschapselementen). Aantal percelen en oppervlakte zijn het
+      totaal in de database.
+    </p>
+  </header>
 
-  <div class="gewassen-container">
-    <header class="gewassen-header">
-      <h1>Gewassen</h1>
-      <p class="gewassen-lead">
-        Overzicht per gewas (zonder landschapselementen). Aantal percelen en oppervlakte zijn het
-        totaal in de database.
-      </p>
-    </header>
+  @if (error(); as message) {
+    <p class="ogk-error">{{ message }}</p>
+  }
 
-    @if (error(); as message) {
-      <p class="gewassen-error">{{ message }}</p>
-    }
-
-    @if (loading()) {
-      <div class="gewassen-loading">
-        <mat-spinner diameter="40"></mat-spinner>
-      </div>
-    } @else {
-      <div class="gewassen-toolbar">
-        <mat-checkbox
-          class="gewassen-filter-check"
-          [checked]="filterUnclassifiedOnly()"
-          (change)="onFilterUnclassifiedChange($event.checked)"
-        >
-          Alleen gewassen zonder classificatie in de database
-        </mat-checkbox>
-      </div>
-      <div class="gewassen-table-wrap">
-        <table mat-table matSort [dataSource]="dataSource" class="gewassen-table">
-          <ng-container matColumnDef="gewas">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Gewas</th>
-            <td mat-cell *matCellDef="let row">
-              <div class="gewassen-naam-cell">
-                @if (cropIconPath(row.gewas); as icon) {
-                  <img class="crop-gewas-icon" [src]="icon" alt="" width="20" height="20" />
-                }
-                <span class="gewassen-naam-text">{{ row.gewas }}</span>
-              </div>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="gewascode">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
-            <td mat-cell *matCellDef="let row">{{ row.gewascode }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="geclassificeerd">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header="gebruik_geclassificeerd">
-              Classificatie
-            </th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.gebruik_geclassificeerd ? 'Ja' : 'Nee' }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="gebruik">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Gebruik</th>
-            <td mat-cell *matCellDef="let row">{{ formatGebruik(row) }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="category">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Categorie</th>
-            <td mat-cell *matCellDef="let row">{{ row.category }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="parcel_count">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Aantal percelen</th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.parcel_count | number: '1.0-0' : 'nl-NL' }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="area_m2">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Oppervlakte (ha)</th>
-            <td mat-cell *matCellDef="let row">
-              @if (areaHa(row); as ha) {
-                {{ ha | number: '1.0-0' : 'nl-NL' }}
-              } @else {
-                —
+  @if (loading()) {
+    <div class="gewassen-loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <div class="gewassen-toolbar">
+      <mat-checkbox
+        [checked]="filterUnclassifiedOnly()"
+        (change)="onFilterUnclassifiedChange($event.checked)"
+      >
+        Alleen gewassen zonder classificatie in de database
+      </mat-checkbox>
+    </div>
+    <div class="ogk-data-table">
+      <table mat-table matSort [dataSource]="dataSource" class="gewassen-table">
+        <ng-container matColumnDef="gewas">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Gewas</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="gewassen-naam-cell">
+              @if (cropIconPath(row.gewas); as icon) {
+                <img class="crop-gewas-icon" [src]="icon" alt="" width="20" height="20" />
               }
-            </td>
-          </ng-container>
+              <span>{{ row.gewas }}</span>
+            </div>
+          </td>
+        </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-        </table>
-      </div>
-    }
-  </div>
+        <ng-container matColumnDef="gewascode">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+          <td mat-cell *matCellDef="let row">{{ row.gewascode }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="geclassificeerd">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header="gebruik_geclassificeerd">
+            Classificatie
+          </th>
+          <td mat-cell *matCellDef="let row">
+            {{ row.gebruik_geclassificeerd ? 'Ja' : 'Nee' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="gebruik">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Gebruik</th>
+          <td mat-cell *matCellDef="let row">{{ formatGebruik(row) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="category">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Categorie</th>
+          <td mat-cell *matCellDef="let row">{{ row.category }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="parcel_count">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="ogk-numeric">
+            Aantal percelen
+          </th>
+          <td mat-cell *matCellDef="let row" class="ogk-numeric">
+            {{ row.parcel_count | number: '1.0-0' : 'nl-NL' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="area_m2">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="ogk-numeric">
+            Oppervlakte (ha)
+          </th>
+          <td mat-cell *matCellDef="let row" class="ogk-numeric">
+            @if (areaHa(row); as ha) {
+              {{ ha | number: '1.0-0' : 'nl-NL' }}
+            } @else {
+              —
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+  }
 </div>

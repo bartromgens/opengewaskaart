@@ -2,7 +2,7 @@
   <div #mapContainer class="map-container"></div>
 
   @if (mapLoading()) {
-    <div class="map-loading" role="status" aria-live="polite">
+    <div class="ogk-overlay-pill map-loading" role="status" aria-live="polite">
       <mat-spinner diameter="20"></mat-spinner>
       <span>Kaartgegevens laden…</span>
     </div>
@@ -17,7 +17,7 @@
     />
 
     <mat-button-toggle-group
-      class="map-layer-toggle"
+      class="ogk-segmented ogk-overlay-pill map-layer-toggle"
       aria-label="Kaartlaag"
       hideSingleSelectionIndicator
       [value]="colorMode()"

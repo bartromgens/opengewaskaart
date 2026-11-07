@@ -50,7 +50,7 @@ describe('cropIconPath', () => {
 describe('gewasHoverPopupHtml', () => {
   it('includes an img when a crop icon exists', () => {
     const html = gewasHoverPopupHtml('Wintertarwe');
-    expect(html).toContain('parcel-gewas-popup-icon');
+    expect(html).toContain('ogk-map-popup-icon');
     expect(html).toContain('wheat.svg');
     expect(html).toContain('Wintertarwe');
   });

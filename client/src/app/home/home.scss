@@ -1,4 +1,4 @@
-$map-breakpoint: 760px;
+@use '../../styles/breakpoints' as bp;
 
 .map-layout {
   position: relative;
@@ -20,34 +20,6 @@ $map-breakpoint: 760px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
-  padding: 3px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(4px);
-
-  --mat-button-toggle-height: 34px;
-  --mat-button-toggle-shape: 999px;
-  --mat-button-toggle-text-color: #4a4a4a;
-  --mat-button-toggle-label-text-size: 0.85rem;
-  --mat-button-toggle-label-text-weight: 500;
-  --mat-button-toggle-selected-state-background-color: var(--mat-sys-primary);
-  --mat-button-toggle-selected-state-text-color: var(--mat-sys-on-primary);
-  --mat-button-toggle-background-color: transparent;
-  --mat-button-toggle-divider-color: transparent;
-
-  .mat-button-toggle {
-    border-radius: 999px;
-    border: none;
-    overflow: hidden;
-    transition: background-color 150ms ease;
-  }
-
-  ::ng-deep .mat-button-toggle-label-content {
-    padding: 0 1rem;
-    line-height: 34px;
-  }
 }
 
 .map-container {
@@ -64,45 +36,12 @@ $map-breakpoint: 760px;
   align-items: center;
   gap: 0.6rem;
   padding: 0.4rem 0.9rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
-  font-size: 0.85rem;
+  font: var(--mat-sys-body-medium);
   z-index: 2;
   pointer-events: none;
 }
 
-::ng-deep .parcel-gewas-popup {
-  pointer-events: none;
-
-  .maplibregl-popup-content {
-    padding: 0.35rem 0.55rem;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    line-height: 1.25;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
-  }
-
-  .parcel-gewas-popup-inner {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    max-width: 16rem;
-  }
-
-  .parcel-gewas-popup-icon {
-    flex-shrink: 0;
-    width: 1.25rem;
-    height: 1.25rem;
-    object-fit: contain;
-  }
-
-  .maplibregl-popup-tip {
-    display: none;
-  }
-}
-
-@media (max-width: $map-breakpoint) {
+@media (max-width: bp.$breakpoint-mobile) {
   .map-chrome-top {
     display: grid;
     grid-template-columns: minmax(auto, 1fr) auto minmax(auto, 1fr);
@@ -141,14 +80,6 @@ $map-breakpoint: 760px;
     transform: none;
     width: max-content;
     max-width: 100%;
-
-    --mat-button-toggle-height: 32px;
-
-    ::ng-deep .mat-button-toggle-label-content {
-      padding: 0 0.7rem;
-      line-height: 32px;
-      font-size: 0.78rem;
-    }
   }
 
   .map-layer-toggle-label-full {
@@ -162,6 +93,6 @@ $map-breakpoint: 760px;
   .map-loading {
     top: 3.5rem;
     max-width: calc(100% - 1rem);
-    font-size: 0.78rem;
+    font: var(--mat-sys-body-small);
   }
 }

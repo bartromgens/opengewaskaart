@@ -1,13 +1,25 @@
-<mat-toolbar color="primary" class="app-toolbar">
-  <a routerLink="/" class="app-title">{{ title }}</a>
+<mat-toolbar class="ogk-toolbar app-toolbar">
+  <a routerLink="/" class="ogk-wordmark app-title">{{ title }}</a>
   <span class="spacer"></span>
   <nav class="app-nav-desktop" aria-label="Hoofdnavigatie">
-    <a mat-button routerLink="/gewassen" routerLinkActive="active-nav-link">Gewassen</a>
-    <a mat-button routerLink="/categorieen" routerLinkActive="active-nav-link">Categorieën</a>
+    <a mat-button class="ogk-nav-link" routerLink="/gewassen" routerLinkActive="ogk-nav-link-active"
+      >Gewassen</a
+    >
+    <a
+      mat-button
+      class="ogk-nav-link"
+      routerLink="/categorieen"
+      routerLinkActive="ogk-nav-link-active"
+      >Categorieën</a
+    >
     @if (auth.isStaff()) {
-      <a mat-button routerLink="/logs" routerLinkActive="active-nav-link">Logs</a>
+      <a mat-button class="ogk-nav-link" routerLink="/logs" routerLinkActive="ogk-nav-link-active"
+        >Logs</a
+      >
     }
-    <a mat-button routerLink="/over" routerLinkActive="active-nav-link">Over</a>
+    <a mat-button class="ogk-nav-link" routerLink="/over" routerLinkActive="ogk-nav-link-active"
+      >Over</a
+    >
   </nav>
   <button
     type="button"

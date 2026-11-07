@@ -1,0 +1,37 @@
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+$ogk-primary-palette: map.merge(
+  mat.$green-palette,
+  (
+    0: #000000,
+    10: #00210f,
+    20: #003920,
+    25: #00452a,
+    30: #005230,
+    35: #005f38,
+    40: #1b6b43,
+    50: #3a855a,
+    60: #539f72,
+    70: #6ebb8c,
+    80: #89d8a6,
+    90: #a5f4c1,
+    95: #c8ffd9,
+    98: #eaffef,
+    99: #f5fff6,
+    100: #ffffff,
+  )
+);
+
+@mixin ogk-theme {
+  @include mat.theme(
+    (
+      color: (
+        primary: $ogk-primary-palette,
+        tertiary: mat.$spring-green-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}

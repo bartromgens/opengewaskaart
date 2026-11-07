@@ -2,7 +2,7 @@
   <button
     type="button"
     mat-stroked-button
-    class="map-legend-trigger"
+    class="ogk-overlay-pill map-legend-trigger"
     (click)="openLegendSheet()"
     aria-expanded="false"
     aria-controls="map-legend-stack"
@@ -15,11 +15,12 @@
   <div
     id="map-legend-stack"
     class="map-legend-stack"
+    [class.ogk-overlay]="smallScreen() && !isCompactGebruik()"
     [class.map-legend-stack-sheet]="smallScreen() && !isCompactGebruik()"
     [class.map-legend-stack-compact]="isCompactGebruik()"
   >
     @if (smallScreen() && !isCompactGebruik()) {
-      <div class="map-legend-sheet-header">
+      <div class="ogk-divider-bottom map-legend-sheet-header">
         <span>Legenda</span>
         <button
           type="button"
@@ -33,7 +34,11 @@
     }
 
     @if (showViewportLegend()) {
-      <div class="map-viewport-ranking" aria-label="Top gewassen in beeld" aria-live="polite">
+      <div
+        class="ogk-overlay map-viewport-ranking"
+        aria-label="Top gewassen in beeld"
+        aria-live="polite"
+      >
         <div class="map-legend-title map-viewport-ranking-header">
           <span>In beeld (oppervlakte)</span>
           @if (viewportLoading()) {
@@ -50,7 +55,7 @@
                 }
                 <span class="map-legend-label map-viewport-label">
                   <span class="map-viewport-name">{{ row.gewas }}</span>
-                  <span class="map-viewport-stats">
+                  <span class="ogk-muted map-viewport-stats">
                     {{ viewportAreaHa(row) }}
                     @if (viewportAreaSharePercent(row); as pct) {
                       <span class="map-viewport-pct">({{ pct }})</span>
@@ -68,7 +73,7 @@
       (colorMode() === 'gebruik' && entries().length > 0) || entries().length > 1 || hasSelection()
     ) {
       <div
-        class="map-legend"
+        class="ogk-overlay map-legend"
         [class.map-legend-compact]="isCompactGebruik()"
         [attr.aria-label]="colorMode() === 'gebruik' ? 'Legenda gebruik' : 'Legenda gewassen'"
       >
@@ -89,7 +94,10 @@
           }
         </ul>
         @if (colorMode() === 'gewas' && !hasSelection()) {
-          <div class="map-legend-viewport-colors" [class.disabled]="!viewportColorsToggleEnabled()">
+          <div
+            class="ogk-divider-top map-legend-viewport-colors"
+            [class.disabled]="!viewportColorsToggleEnabled()"
+          >
             <mat-slide-toggle
               [checked]="viewportColors()"
               [disabled]="!viewportColorsToggleEnabled()"
@@ -98,7 +106,7 @@
             >
               Dynamische kleuren
             </mat-slide-toggle>
-            <p class="map-legend-viewport-colors-hint">
+            <p class="ogk-muted map-legend-viewport-colors-hint">
               Kleuren passen zich aan de top gewassen in beeld aan
             </p>
           </div>

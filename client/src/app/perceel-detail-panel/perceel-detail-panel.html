@@ -1,17 +1,29 @@
 @if (loading()) {
-  <aside class="detail-panel">
-    <p class="status">Perceel laden…</p>
+  <aside class="ogk-overlay detail-panel">
+    <p class="status ogk-muted">Perceel laden…</p>
   </aside>
 } @else if (error(); as message) {
-  <aside class="detail-panel">
-    <button type="button" class="close-button" (click)="closed.emit()" aria-label="Sluiten">
+  <aside class="ogk-overlay detail-panel">
+    <button
+      type="button"
+      mat-icon-button
+      class="close-button"
+      (click)="closed.emit()"
+      aria-label="Sluiten"
+    >
       <mat-icon>close</mat-icon>
     </button>
-    <p class="status error">{{ message }}</p>
+    <p class="status ogk-error">{{ message }}</p>
   </aside>
 } @else if (perceel(); as parcel) {
-  <aside class="detail-panel">
-    <button type="button" class="close-button" (click)="closed.emit()" aria-label="Sluiten">
+  <aside class="ogk-overlay detail-panel">
+    <button
+      type="button"
+      mat-icon-button
+      class="close-button"
+      (click)="closed.emit()"
+      aria-label="Sluiten"
+    >
       <mat-icon>close</mat-icon>
     </button>
 
@@ -23,29 +35,29 @@
     </h2>
     <dl>
       <div>
-        <dt>Jaar</dt>
+        <dt class="ogk-muted">Jaar</dt>
         <dd>{{ parcel.jaar }}</dd>
       </div>
       <div>
-        <dt>Gewas</dt>
+        <dt class="ogk-muted">Gewas</dt>
         <dd>{{ parcel.gewas }}</dd>
       </div>
       <div>
-        <dt>Categorie</dt>
+        <dt class="ogk-muted">Categorie</dt>
         <dd>{{ parcel.category }}</dd>
       </div>
       <div>
-        <dt>Gebruik</dt>
+        <dt class="ogk-muted">Gebruik</dt>
         <dd>{{ formatGebruik(parcel.gebruik) }}</dd>
       </div>
       @if (formatArea(parcel.area_m2); as area) {
         <div>
-          <dt>Oppervlakte</dt>
+          <dt class="ogk-muted">Oppervlakte</dt>
           <dd>{{ area }}</dd>
         </div>
       }
       <div>
-        <dt>Status</dt>
+        <dt class="ogk-muted">Status</dt>
         <dd>{{ parcel.status }}</dd>
       </div>
     </dl>

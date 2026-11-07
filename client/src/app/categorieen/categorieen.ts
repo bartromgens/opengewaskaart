@@ -1,21 +1,17 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { ApiService, CategorieSummary } from '../api.service';
+import { BackToMapComponent } from '../shared/back-to-map';
 
 @Component({
   selector: 'app-categorieen',
   imports: [
-    RouterLink,
-    MatButtonModule,
-    MatIconModule,
+    BackToMapComponent,
     MatProgressSpinnerModule,
     MatTableModule,
     MatSortModule,

@@ -176,8 +176,8 @@ export function gewasHoverPopupHtml(gewas: string): string {
   }
   const src = escapeHtml(icon);
   return (
-    `<span class="parcel-gewas-popup-inner">` +
-    `<img class="parcel-gewas-popup-icon" src="${src}" alt="" />` +
+    `<span class="ogk-map-popup-inner">` +
+    `<img class="ogk-map-popup-icon" src="${src}" alt="" />` +
     `<span>${label}</span></span>`
   );
 }

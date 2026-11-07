@@ -1,4 +1,4 @@
-$map-breakpoint: 760px;
+@use '../../styles/breakpoints' as bp;
 
 :host.gewas-filter-host {
   display: block;
@@ -6,14 +6,6 @@ $map-breakpoint: 760px;
 
 .gewas-filter-compact-trigger {
   flex-shrink: 0;
-  min-height: 34px;
-  padding: 0 0.65rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 34px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .gewas-filter-compact-count {
@@ -28,14 +20,9 @@ $map-breakpoint: 760px;
   z-index: 3;
   width: min(20rem, calc(100vw - 1.5rem));
   max-width: 20rem;
-  padding: 0.65rem 0.75rem 0.75rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(4px);
   box-sizing: border-box;
 
-  @media (max-width: $map-breakpoint) {
+  @media (max-width: bp.$breakpoint-mobile) {
     position: static;
     width: 100%;
     max-width: none;
@@ -43,68 +30,53 @@ $map-breakpoint: 760px;
   }
 }
 
-.gewas-filter-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-bottom: 0.25rem;
-}
-
-.gewas-filter-head-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-}
-
-.gewas-filter-close {
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-}
-
-.gewas-filter-clear {
-  font-size: 0.75rem;
-  min-height: 28px;
-  line-height: 28px;
-  padding: 0 0.5rem;
-}
-
 .gewas-filter-field {
   width: 100%;
-  font-size: 0.85rem;
+}
 
-  --mat-form-field-container-height: 44px;
-  --mat-form-field-container-vertical-padding: 6px;
+.gewas-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  line-height: 1.25;
 }
 
 .gewas-filter-option-icon {
-  margin-right: 0.35rem;
-  vertical-align: middle;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.gewas-filter-option-name {
+  flex: 1;
+  min-width: 0;
 }
 
 .gewas-filter-option-count {
-  margin-left: 0.35rem;
-  color: #666;
-  font-size: 0.85em;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .gewas-filter-chips {
   display: block;
   max-height: 8.5rem;
   overflow-y: auto;
-  margin-top: 0.35rem;
+  margin-top: 0.4rem;
+  padding: 4px 4px 8px;
   min-height: 0;
 }
 
 .gewas-filter-chip-swatch {
   display: inline-block;
+  flex-shrink: 0;
   width: 0.65rem;
   height: 0.65rem;
-  border-radius: 2px;
   margin-right: 0.35rem;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+  border: 1px solid var(--ogk-hairline);
   vertical-align: middle;
-  flex-shrink: 0;
 }
 
 ::ng-deep .gewas-filter-field .mat-mdc-form-field-subscript-wrapper {

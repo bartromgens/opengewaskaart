@@ -234,7 +234,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       closeButton: false,
       closeOnClick: false,
       offset: 12,
-      className: 'parcel-gewas-popup',
+      className: 'ogk-map-popup',
     });
 
     this.map.on('load', () => {
