@@ -3,10 +3,10 @@ import type { ExpressionSpecification, FilterSpecification, Map as MapLibreMap }
 import { buildGewascodeInLayerFilter } from './crop-colors';
 
 /** Show parcel-centre crop icons from this zoom (detail tiles). */
-export const PARCEL_MAP_ICON_MIN_ZOOM = 14;
+export const PARCEL_MAP_ICON_MIN_ZOOM = 13;
 
 /** Ignore smaller parcels (m²) so icons stay readable in the polygon centre. */
-export const PARCEL_MAP_ICON_MIN_AREA_M2 = 2_500;
+export const PARCEL_MAP_ICON_MIN_AREA_M2 = 10_000;
 
 const OPEN = (slug: string): string => `/assets/crop-icons/open-crop-icons/${slug}.svg`;
 const ORIG = (slug: string): string => `/assets/crop-icons/original/${slug}.svg`;
@@ -422,8 +422,14 @@ export function buildParcelIconLayerFilter(
   gewasCodes: number[],
   minAreaM2: number = PARCEL_MAP_ICON_MIN_AREA_M2,
 ): FilterSpecification {
-  const parts: (boolean | ExpressionSpecification)[] = [
+  const areaOk: ExpressionSpecification = [
+    'case',
+    ['has', 'area_m2'],
     ['>=', ['coalesce', ['to-number', ['get', 'area_m2']], 0], minAreaM2],
+    true,
+  ] as unknown as ExpressionSpecification;
+  const parts: (boolean | ExpressionSpecification)[] = [
+    areaOk,
     ['!=', buildCropIconImageExpression(), ''],
   ];
   const gewasFilter = buildGewascodeInLayerFilter(gewasCodes);
@@ -443,27 +449,47 @@ function uniqueParcelIconImages(): Map<string, string> {
   return urls;
 }
 
-function loadImage(map: MapLibreMap, id: string, url: string): Promise<void> {
+const MAP_ICON_PIXEL_SIZE = 128;
+
+async function loadImage(map: MapLibreMap, id: string, url: string): Promise<void> {
   if (map.hasImage(id)) {
-    return Promise.resolve();
+    return;
   }
-  return new Promise((resolve, reject) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to load map icon ${url} (${response.status})`);
+  }
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  try {
     const img = new Image();
-    img.onload = (): void => {
-      try {
-        if (!map.hasImage(id)) {
-          map.addImage(id, img, { pixelRatio: 2 });
-        }
-        resolve();
-      } catch (error) {
-        reject(error);
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error(`Failed to decode map icon ${url}`));
+      img.src = objectUrl;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = MAP_ICON_PIXEL_SIZE;
+    canvas.height = MAP_ICON_PIXEL_SIZE;
+    const ctx = canvas.getContext('2d');
+    if (ctx === null) {
+      throw new Error('Canvas 2D context unavailable for map icons');
+    }
+    ctx.drawImage(img, 0, 0, MAP_ICON_PIXEL_SIZE, MAP_ICON_PIXEL_SIZE);
+    try {
+      if (typeof createImageBitmap === 'function') {
+        const bitmap = await createImageBitmap(canvas);
+        map.addImage(id, bitmap, { pixelRatio: 1 });
+      } else {
+        const imageData = ctx.getImageData(0, 0, MAP_ICON_PIXEL_SIZE, MAP_ICON_PIXEL_SIZE);
+        map.addImage(id, imageData, { pixelRatio: 1 });
       }
-    };
-    img.onerror = (): void => {
-      reject(new Error(`Failed to load map icon ${url}`));
-    };
-    img.src = url;
-  });
+    } catch {
+      map.addImage(id, img, { pixelRatio: 2 });
+    }
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 export async function loadParcelCropIconImages(map: MapLibreMap): Promise<void> {

@@ -1,7 +1,11 @@
 import type { ExpressionSpecification, FilterSpecification, Map as MapLibreMap } from 'maplibre-gl';
-import type { FeatureCollection, Point } from 'geojson';
 
-import { PARCEL_MAP_ICON_MIN_ZOOM, loadParcelCropIconImages } from '../crop-icon-map';
+import {
+  PARCEL_MAP_ICON_MIN_ZOOM,
+  buildCropIconImageExpression,
+  buildParcelIconLayerFilter,
+  loadParcelCropIconImages,
+} from '../crop-icon-map';
 import type { TileConfig } from './tilejson';
 
 export const PERCELEN_SOURCE = 'percelen';
@@ -9,15 +13,8 @@ export const PERCELEN_LAYER = 'percelen';
 export const PERCELEN_FILL_LAYER = 'percelen-fill';
 export const PERCELEN_OUTLINE_LAYER = 'percelen-outline';
 export const PERCELEN_ICON_LAYER = 'percelen-icon';
-export const PARCEL_ICONS_SOURCE = 'parcel-icon-points';
-
 export const OUTLINE_MIN_ZOOM = 12;
 export const SELECTED_PARCEL_COLOR = '#1565c0';
-
-export const EMPTY_ICON_FEATURES: FeatureCollection<Point> = {
-  type: 'FeatureCollection',
-  features: [],
-};
 
 export function selectedCase(selected: number, normal: number): ExpressionSpecification {
   return ['case', ['boolean', ['feature-state', 'selected'], false], selected, normal];
@@ -138,32 +135,23 @@ export async function addParcelIconLayer(map: MapLibreMap): Promise<void> {
   } catch {
     return;
   }
-  if (!map.getSource(PARCEL_ICONS_SOURCE)) {
-    map.addSource(PARCEL_ICONS_SOURCE, {
-      type: 'geojson',
-      data: EMPTY_ICON_FEATURES,
-    });
-    map.addLayer({
-      id: PERCELEN_ICON_LAYER,
-      type: 'symbol',
-      source: PARCEL_ICONS_SOURCE,
-      minzoom: PARCEL_MAP_ICON_MIN_ZOOM,
-      layout: {
-        'icon-image': ['get', 'icon'],
-        'icon-size': [
-          'interpolate',
-          ['linear'],
-          ['zoom'],
-          PARCEL_MAP_ICON_MIN_ZOOM,
-          0.22,
-          16,
-          0.42,
-        ],
-        'icon-allow-overlap': true,
-        'icon-ignore-placement': true,
-      },
-    });
+  if (map.getLayer(PERCELEN_ICON_LAYER)) {
+    return;
   }
+  map.addLayer({
+    id: PERCELEN_ICON_LAYER,
+    type: 'symbol',
+    source: PERCELEN_SOURCE,
+    'source-layer': PERCELEN_LAYER,
+    minzoom: PARCEL_MAP_ICON_MIN_ZOOM,
+    filter: buildParcelIconLayerFilter([]),
+    layout: {
+      'icon-image': buildCropIconImageExpression(),
+      'icon-size': ['interpolate', ['linear'], ['zoom'], PARCEL_MAP_ICON_MIN_ZOOM, 0.18, 16, 0.28],
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+    },
+  });
 }
 
 export function setParcelFill(map: MapLibreMap, fill: ExpressionSpecification): void {
@@ -178,7 +166,14 @@ export function setParcelFeatureSelected(map: MapLibreMap, id: number, selected:
   map.setFeatureState({ source: PERCELEN_SOURCE, sourceLayer: PERCELEN_LAYER, id }, { selected });
 }
 
-export function setParcelLayersFilter(map: MapLibreMap, filter: FilterSpecification | null): void {
+export function setParcelLayersFilter(
+  map: MapLibreMap,
+  filter: FilterSpecification | null,
+  gewasCodes: number[] = [],
+): void {
   map.setFilter(PERCELEN_FILL_LAYER, filter);
   map.setFilter(PERCELEN_OUTLINE_LAYER, filter);
+  if (map.getLayer(PERCELEN_ICON_LAYER)) {
+    map.setFilter(PERCELEN_ICON_LAYER, buildParcelIconLayerFilter(gewasCodes));
+  }
 }

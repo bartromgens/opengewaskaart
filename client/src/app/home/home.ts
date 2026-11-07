@@ -19,8 +19,6 @@ import {
   NavigationControl,
   Popup,
   type ExpressionSpecification,
-  type GeoJSONSource,
-  type MapGeoJSONFeature,
   type MapLayerMouseEvent,
 } from 'maplibre-gl';
 import {
@@ -48,8 +46,6 @@ import {
   type LegendEntry,
 } from '../crop-colors';
 import { gewasHoverPopupHtml } from '../crop-icons';
-import { PARCEL_MAP_ICON_MIN_ZOOM } from '../crop-icon-map';
-import { buildParcelIconFeatureCollection } from '../parcel-map-icons';
 import { GewasFilterComponent } from '../gewas-filter/gewas-filter';
 import { PerceelDetailPanelComponent } from '../perceel-detail-panel/perceel-detail-panel';
 import { MapLegendComponent, type ViewportLegendRow } from '../map-legend/map-legend';
@@ -57,10 +53,7 @@ import { fetchOr } from '../map/fetch-or';
 import { buildMapQueryString, readMapUrlState } from '../map/map-url-state';
 import { parcelFromTileProperties } from '../map/parcel-from-tile';
 import {
-  EMPTY_ICON_FEATURES,
-  PARCEL_ICONS_SOURCE,
   PERCELEN_FILL_LAYER,
-  PERCELEN_ICON_LAYER,
   PERCELEN_SOURCE,
   addParcelFillLayer,
   addParcelIconLayer,
@@ -74,7 +67,6 @@ import { loadTileConfig, type TileConfig } from '../map/tilejson';
 import { bboxParam, isWholeCountryView } from '../map/viewport';
 import { environment } from '../../environments/environment';
 
-const PARCEL_ICON_REFRESH_MS = 200;
 const HOVER_GEWAS_MIN_ZOOM = 11;
 const MAP_GEWAS_COLOR_TOP_N = 8;
 const VIEWPORT_GEWASSEN_TOP_N = 10;
@@ -157,7 +149,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   private gebruikSummaryRows: GebruikSummary[] = [];
   private pendingGewasFilterCodes: readonly number[] | null = null;
   private viewportFetchTimer: ReturnType<typeof setTimeout> | null = null;
-  private parcelIconRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private viewportRequestId = 0;
   private viewportShowsWholeCountry = signal(true);
   private viewportFetchAllowed = false;
@@ -290,7 +281,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.map.on('moveend', () => {
       this.updateUrlFromMap();
       this.scheduleViewportGewassenRefresh();
-      this.scheduleParcelIconRefresh();
     });
     this.map.on('click', PERCELEN_FILL_LAYER, (event) => this.onParcelClick(event));
     this.map.on('mouseenter', PERCELEN_FILL_LAYER, () => {
@@ -309,7 +299,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       if (this.map && this.map.getZoom() < HOVER_GEWAS_MIN_ZOOM) {
         this.clearHoverGewasPopup();
       }
-      this.scheduleParcelIconRefresh();
     });
     this.map.on('click', (event) => {
       if (!this.map || !this.map.getLayer(PERCELEN_FILL_LAYER)) {
@@ -354,14 +343,13 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.colorMode.set('gewas');
     }
 
-    void addParcelIconLayer(this.map).then(() => this.scheduleParcelIconRefresh());
+    void addParcelIconLayer(this.map).then(() => this.applyParcelLayerGewasFilter());
 
     this.parcelLayersAdded = true;
     this.map.once('idle', () => {
       this.mapLoading.set(false);
       this.viewportFetchAllowed = true;
       this.scheduleViewportGewassenRefresh();
-      this.scheduleParcelIconRefresh();
     });
     this.applyParcelLayerGewasFilter();
     this.applyActiveFillPaint();
@@ -404,40 +392,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
     const codes = this.selectedGewassen().map((s) => s.gewascode);
-    setParcelLayersFilter(this.map, buildGewascodeInLayerFilter(codes));
-    this.scheduleParcelIconRefresh();
-  }
-
-  private scheduleParcelIconRefresh(): void {
-    if (this.parcelIconRefreshTimer !== null) {
-      clearTimeout(this.parcelIconRefreshTimer);
-    }
-    this.parcelIconRefreshTimer = setTimeout(() => {
-      this.parcelIconRefreshTimer = null;
-      this.refreshParcelIconsFromView();
-    }, PARCEL_ICON_REFRESH_MS);
-  }
-
-  private refreshParcelIconsFromView(): void {
-    if (!this.map) {
-      return;
-    }
-    const source = this.map.getSource(PARCEL_ICONS_SOURCE) as GeoJSONSource | undefined;
-    if (!source || !this.map.getLayer(PERCELEN_ICON_LAYER)) {
-      return;
-    }
-    if (this.map.getZoom() < PARCEL_MAP_ICON_MIN_ZOOM) {
-      source.setData(EMPTY_ICON_FEATURES);
-      return;
-    }
-    if (!this.map.getLayer(PERCELEN_FILL_LAYER)) {
-      return;
-    }
-    const rendered = this.map.queryRenderedFeatures(undefined, {
-      layers: [PERCELEN_FILL_LAYER],
-    }) as MapGeoJSONFeature[];
-    const gewasCodes = this.selectedGewassen().map((g) => g.gewascode);
-    source.setData(buildParcelIconFeatureCollection(rendered, gewasCodes));
+    setParcelLayersFilter(this.map, buildGewascodeInLayerFilter(codes), codes);
   }
 
   private clearParcelIfFilteredOut(): void {
