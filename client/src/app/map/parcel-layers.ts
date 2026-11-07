@@ -147,7 +147,17 @@ export async function addParcelIconLayer(map: MapLibreMap): Promise<void> {
     filter: buildParcelIconLayerFilter([]),
     layout: {
       'icon-image': buildCropIconImageExpression(),
-      'icon-size': ['interpolate', ['linear'], ['zoom'], PARCEL_MAP_ICON_MIN_ZOOM, 0.18, 16, 0.28],
+      'icon-size': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        PARCEL_MAP_ICON_MIN_ZOOM,
+        0.12,
+        14,
+        0.18,
+        16,
+        0.28,
+      ],
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
     },

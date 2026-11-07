@@ -3,7 +3,7 @@ import type { ExpressionSpecification, FilterSpecification, Map as MapLibreMap }
 import { buildGewascodeInLayerFilter } from './crop-colors';
 
 /** Show parcel-centre crop icons from this zoom (detail tiles). */
-export const PARCEL_MAP_ICON_MIN_ZOOM = 13;
+export const PARCEL_MAP_ICON_MIN_ZOOM = 12;
 
 /** Ignore smaller parcels (m²) so icons stay readable in the polygon centre. */
 export const PARCEL_MAP_ICON_MIN_AREA_M2 = 10_000;
