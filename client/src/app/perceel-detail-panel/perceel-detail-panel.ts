@@ -19,6 +19,18 @@ export class PerceelDetailPanelComponent {
   error = input<string | null>(null);
   closed = output<void>();
 
+  formatArea(areaM2: number | null): string | null {
+    if (areaM2 == null) {
+      return null;
+    }
+    const ha = (areaM2 / 10_000).toLocaleString('nl-NL', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const m2 = Math.round(areaM2).toLocaleString('nl-NL');
+    return `${ha} ha (${m2} m²)`;
+  }
+
   formatGebruik(gebruik: GewasGebruikKey): string {
     return gebruikLabel(gebruik);
   }

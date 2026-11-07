@@ -38,6 +38,12 @@
         <dt>Gebruik</dt>
         <dd>{{ formatGebruik(parcel.gebruik) }}</dd>
       </div>
+      @if (formatArea(parcel.area_m2); as area) {
+        <div>
+          <dt>Oppervlakte</dt>
+          <dd>{{ area }}</dd>
+        </div>
+      }
       <div>
         <dt>Status</dt>
         <dd>{{ parcel.status }}</dd>

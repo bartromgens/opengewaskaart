@@ -16,27 +16,28 @@
 
 @if (showPanel()) {
   <div id="gewas-filter-panel" class="gewas-filter-panel" aria-label="Gewasfilter">
-    <div class="gewas-filter-head">
-      <span class="gewas-filter-title">Gewas</span>
-      <div class="gewas-filter-head-actions">
-        @if (selected().length > 0) {
-          <button mat-button type="button" class="gewas-filter-clear" (click)="clearAll()">
-            Wissen
-          </button>
-        }
-        @if (smallScreen()) {
-          <button
-            type="button"
-            mat-icon-button
-            class="gewas-filter-close"
-            (click)="togglePanel()"
-            aria-label="Sluiten"
-          >
-            <mat-icon>close</mat-icon>
-          </button>
-        }
+    @if (selected().length > 0 || smallScreen()) {
+      <div class="gewas-filter-head">
+        <div class="gewas-filter-head-actions">
+          @if (selected().length > 0) {
+            <button mat-button type="button" class="gewas-filter-clear" (click)="clearAll()">
+              Wissen
+            </button>
+          }
+          @if (smallScreen()) {
+            <button
+              type="button"
+              mat-icon-button
+              class="gewas-filter-close"
+              (click)="togglePanel()"
+              aria-label="Sluiten"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
       </div>
-    </div>
+    }
 
     <mat-form-field appearance="outline" class="gewas-filter-field" subscriptSizing="dynamic">
       <mat-label>Zoek gewas</mat-label>
@@ -54,8 +55,13 @@
       >
         @for (row of filteredOptions(); track row.gewascode) {
           <mat-option [value]="row.gewascode">
+            @if (cropIconPath(row.gewas); as icon) {
+              <img class="gewas-filter-option-icon" [src]="icon" alt="" width="20" height="20" />
+            }
             {{ row.gewas }}
-            <span class="gewas-filter-option-code">({{ row.gewascode }})</span>
+            <span class="gewas-filter-option-count"
+              >({{ row.parcel_count | number: '1.0-0' : 'nl-NL' }})</span
+            >
           </mat-option>
         }
       </mat-autocomplete>

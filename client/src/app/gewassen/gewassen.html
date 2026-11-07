@@ -82,7 +82,7 @@
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Oppervlakte (ha)</th>
             <td mat-cell *matCellDef="let row">
               @if (areaHa(row); as ha) {
-                {{ ha | number: '1.0-2' : 'nl-NL' }}
+                {{ ha | number: '1.0-0' : 'nl-NL' }}
               } @else {
                 —
               }

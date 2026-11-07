@@ -46,7 +46,7 @@ $map-breakpoint: 760px;
 .gewas-filter-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom: 0.25rem;
 }
 
@@ -60,12 +60,6 @@ $map-breakpoint: 760px;
   width: 2rem;
   height: 2rem;
   padding: 0;
-}
-
-.gewas-filter-title {
-  font-weight: 600;
-  font-size: 0.82rem;
-  color: #333;
 }
 
 .gewas-filter-clear {
@@ -83,7 +77,12 @@ $map-breakpoint: 760px;
   --mat-form-field-container-vertical-padding: 6px;
 }
 
-.gewas-filter-option-code {
+.gewas-filter-option-icon {
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.gewas-filter-option-count {
   margin-left: 0.35rem;
   color: #666;
   font-size: 0.85em;
@@ -111,4 +110,3 @@ $map-breakpoint: 760px;
 ::ng-deep .gewas-filter-field .mat-mdc-form-field-subscript-wrapper {
   display: none;
 }
-

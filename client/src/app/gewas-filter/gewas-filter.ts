@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -13,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { startWith } from 'rxjs/operators';
 
 import type { GewasSummary } from '../api.service';
+import { cropIconPath } from '../crop-icons';
 import { injectSmallScreen } from '../shared/small-screen';
 
 const MAX_OPTIONS = 50;
@@ -24,6 +26,7 @@ const MAX_OPTIONS = 50;
     '[class.gewas-filter-host-expanded]': 'smallScreen() && panelOpen()',
   },
   imports: [
+    DecimalPipe,
     ReactiveFormsModule,
     MatAutocompleteModule,
     MatButtonModule,
@@ -40,6 +43,8 @@ export class GewasFilterComponent {
   selected = input.required<GewasSummary[]>();
   colors = input.required<ReadonlyMap<number, string>>();
   selectedChange = output<GewasSummary[]>();
+
+  readonly cropIconPath = cropIconPath;
 
   queryCtrl = new FormControl('', { nonNullable: true });
 

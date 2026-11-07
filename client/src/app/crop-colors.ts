@@ -381,7 +381,7 @@ export function formatHa(areaM2: number | null): string {
     return '—';
   }
   const ha = areaM2 / 10_000;
-  return `${ha.toLocaleString('nl-NL', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} ha`;
+  return `${ha.toLocaleString('nl-NL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ha`;
 }
 
 /**
