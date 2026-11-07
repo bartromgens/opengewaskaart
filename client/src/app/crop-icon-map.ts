@@ -125,6 +125,12 @@ const PARCEL_ICON_CASES: readonly ParcelIconCase[] = [
       g.includes('vaste planten'),
   },
   {
+    mapId: 'crop-flower',
+    url: ORIG('flower'),
+    when: has('agrarisch natuurmengsel'),
+    matches: (g) => g.includes('agrarisch natuurmengsel'),
+  },
+  {
     mapId: 'crop-grasland',
     url: ORIG('grasland'),
     when: [
@@ -135,7 +141,6 @@ const PARCEL_ICON_CASES: readonly ParcelIconCase[] = [
       has('overige gras'),
       has('overige groenbemesters'),
       has('groene braak'),
-      has('agrarisch natuurmengsel'),
       has('miscanthus'),
       has('olifantsgras'),
       has('drachtplanten'),
@@ -149,7 +154,6 @@ const PARCEL_ICON_CASES: readonly ParcelIconCase[] = [
       g.includes('overige gras') ||
       g.includes('overige groenbemesters') ||
       g.includes('groene braak') ||
-      g.includes('agrarisch natuurmengsel') ||
       g.includes('miscanthus') ||
       g.includes('olifantsgras') ||
       g.includes('drachtplanten') ||

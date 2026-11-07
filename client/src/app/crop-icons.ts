@@ -46,6 +46,10 @@ const CROP_ICON_RULES: readonly CropIconRule[] = [
       g.includes('vaste planten'),
   },
   {
+    iconPath: ORIGINAL_ICON('flower'),
+    matches: (g) => g.includes('agrarisch natuurmengsel'),
+  },
+  {
     iconPath: ORIGINAL_ICON('grasland'),
     matches: (g) =>
       g.includes('grasland') ||
@@ -54,7 +58,6 @@ const CROP_ICON_RULES: readonly CropIconRule[] = [
       g.includes('overige gras') ||
       g.includes('overige groenbemesters') ||
       g.includes('groene braak') ||
-      g.includes('agrarisch natuurmengsel') ||
       g.includes('miscanthus') ||
       g.includes('olifantsgras') ||
       g.includes('drachtplanten') ||
