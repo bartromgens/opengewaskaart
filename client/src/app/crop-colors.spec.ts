@@ -1,8 +1,12 @@
 import type { GewasSummary } from './api.service';
 import {
+  GRASLAND_GEWAS_COLOR,
+  MAIS_GEWAS_COLOR,
   assignSelectedGewasColors,
+  assignViewportGewasColors,
   buildGewascodeInLayerFilter,
   buildSelectedGewasFillColorExpression,
+  buildViewportGewasFillColorExpression,
 } from './crop-colors';
 
 function mockRow(gewascode: number, gewas: string): GewasSummary {
@@ -48,5 +52,24 @@ describe('crop-colors gewas filter helpers', () => {
     const expr = buildSelectedGewasFillColorExpression(colors);
     expect(Array.isArray(expr)).toBe(true);
     expect(expr[0]).toBe('match');
+  });
+
+  it('assignViewportGewasColors keeps fixed grasland and mais colours', () => {
+    const viewport = [
+      mockRow(1, 'Grasland, permanente'),
+      mockRow(2, 'Maïs'),
+      mockRow(3, 'Vlas, vezel-'),
+    ];
+    const colors = assignViewportGewasColors(viewport);
+    expect(colors.get(1)).toBe(GRASLAND_GEWAS_COLOR);
+    expect(colors.get(2)).toBe(MAIS_GEWAS_COLOR);
+    expect(colors.get(3)).not.toBe(GRASLAND_GEWAS_COLOR);
+    expect(new Set([colors.get(1), colors.get(2), colors.get(3)]).size).toBe(3);
+  });
+
+  it('buildViewportGewasFillColorExpression builds a case expression', () => {
+    const expr = buildViewportGewasFillColorExpression([mockRow(9, 'Grasland, blijvend')]);
+    expect(Array.isArray(expr)).toBe(true);
+    expect(expr[0]).toBe('case');
   });
 });

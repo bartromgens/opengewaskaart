@@ -1,9 +1,6 @@
 import logging
 
 from rest_framework.authentication import SessionAuthentication
-from django.conf import settings
-from django.core.cache import cache
-from django.db.models import Count, Sum
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -14,9 +11,12 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from api.brp_constants import EXCLUDED_MBTILES_CATEGORIES
+from api.gebruik import (
+    gebruik_by_gewascode,
+    gewas_gebruik_classified_codes,
+)
 from api.log_files import list_log_files, parse_line_count, read_log_file, resolve_log_file
-from api.gebruik import gebruik_by_gewascode
+from api.management.bbox import parse_gewas_codes_param
 from api.models import Gewasperceel, GewasGebruik
 from api.serializers import (
     CategorieSummarySerializer,
@@ -24,6 +24,14 @@ from api.serializers import (
     GewassenSummarySerializer,
     GewasGebruikSerializer,
     GewasperceelSerializer,
+)
+from api.summaries import (
+    GEWASSEN_SUMMARY_LIMIT_MAX,
+    fetch_categorieen_summary_rows,
+    fetch_gebruik_summary_rows,
+    fetch_gewassen_summary_rows,
+    national_http_cache_headers,
+    parse_jaar_param,
 )
 
 logger = logging.getLogger(__name__)
@@ -54,69 +62,65 @@ class GewasperceelDetailView(RetrieveAPIView):
 def gewassen_summary(request: Request) -> Response:
     jaar_param = request.query_params.get("jaar")
     limit_param = request.query_params.get("limit")
-    queryset = Gewasperceel.objects.exclude(category__in=EXCLUDED_MBTILES_CATEGORIES)
+    bbox_param = request.query_params.get("bbox")
+    gewas_param = request.query_params.get("gewas")
+
     if jaar_param is not None:
         try:
-            jaar = int(jaar_param)
+            parse_jaar_param(jaar_param)
         except ValueError:
             return Response({"error": "Invalid jaar parameter."}, status=400)
-        queryset = queryset.filter(jaar=jaar)
 
-    rows = (
-        queryset.values("gewascode", "gewas", "category")
-        .annotate(parcel_count=Count("id"), area_m2=Sum("area_m2"))
-        .order_by("-parcel_count")
-    )
+    gewas_codes, gewas_ok = parse_gewas_codes_param(gewas_param)
+    if not gewas_ok:
+        return Response({"error": "Invalid gewas parameter."}, status=400)
+
+    limit: int | None = None
     if limit_param is not None:
         try:
             limit = int(limit_param)
         except ValueError:
             return Response({"error": "Invalid limit parameter."}, status=400)
-        if limit < 1:
+        if limit < 1 or limit > GEWASSEN_SUMMARY_LIMIT_MAX:
             return Response({"error": "Invalid limit parameter."}, status=400)
-        rows = rows[:limit]
 
-    # Full-table aggregate is slow; cache the rows (gebruik is merged in below).
-    cache_key = f"gewassen_summary:{jaar_param}:{limit_param}"
-    cached_rows = cache.get(cache_key)
-    if cached_rows is None:
-        cached_rows = list(rows)
-        cache.set(cache_key, cached_rows, settings.SUMMARY_CACHE_SECONDS)
-    rows = cached_rows
+    try:
+        rows, is_national = fetch_gewassen_summary_rows(
+            jaar_param=jaar_param,
+            limit=limit,
+            bbox_param=bbox_param,
+            gewas_codes=gewas_codes,
+        )
+    except ValueError as exc:
+        if str(exc) == "invalid_bbox":
+            return Response({"error": "Invalid bbox parameter."}, status=400)
+        raise
 
-    codes_in_gebruik_table = set(
-        GewasGebruik.objects.values_list("gewascode", flat=True)
-    )
     serializer = GewassenSummarySerializer(
         rows,
         many=True,
         context={
             "gebruik_map": gebruik_by_gewascode(),
-            "gewas_gebruik_codes": codes_in_gebruik_table,
+            "gewas_gebruik_codes": gewas_gebruik_classified_codes(),
         },
     )
-    return Response(serializer.data)
+    headers = national_http_cache_headers() if is_national else None
+    return Response(serializer.data, headers=headers)
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def categorieen_summary(request: Request) -> Response:
     jaar_param = request.query_params.get("jaar")
-    queryset = Gewasperceel.objects.exclude(category__in=EXCLUDED_MBTILES_CATEGORIES)
     if jaar_param is not None:
         try:
-            jaar = int(jaar_param)
+            parse_jaar_param(jaar_param)
         except ValueError:
             return Response({"error": "Invalid jaar parameter."}, status=400)
-        queryset = queryset.filter(jaar=jaar)
 
-    rows = (
-        queryset.values("category")
-        .annotate(parcel_count=Count("id"), area_m2=Sum("area_m2"))
-        .order_by("-parcel_count")
-    )
+    rows = fetch_categorieen_summary_rows(jaar_param)
     serializer = CategorieSummarySerializer(rows, many=True)
-    return Response(serializer.data)
+    return Response(serializer.data, headers=national_http_cache_headers())
 
 
 @api_view(["GET"])
@@ -124,80 +128,22 @@ def categorieen_summary(request: Request) -> Response:
 def gewas_gebruik_list(request: Request) -> Response:
     rows = GewasGebruik.objects.values("gewascode", "gebruik").order_by("gewascode")
     serializer = GewasGebruikSerializer(rows, many=True)
-    return Response(serializer.data)
+    return Response(serializer.data, headers=national_http_cache_headers())
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def gebruik_summary(request: Request) -> Response:
-    from collections import defaultdict
-
     jaar_param = request.query_params.get("jaar")
-    queryset = Gewasperceel.objects.exclude(category__in=EXCLUDED_MBTILES_CATEGORIES)
     if jaar_param is not None:
         try:
-            jaar = int(jaar_param)
+            parse_jaar_param(jaar_param)
         except ValueError:
             return Response({"error": "Invalid jaar parameter."}, status=400)
-        queryset = queryset.filter(jaar=jaar)
 
-    gebruik_map = gebruik_by_gewascode()
-
-    parcels: dict[str, int] = defaultdict(int)
-    areas: dict[str, float] = defaultdict(float)
-    # Aggregate per gewascode in the database (a few hundred rows) instead of
-    # iterating every parcel in Python; cache since it scans the whole table.
-    cache_key = f"gebruik_summary:{jaar_param}"
-    per_code = cache.get(cache_key)
-    if per_code is None:
-        per_code = list(
-            queryset.values("gewascode").annotate(
-                parcel_count=Count("id"), area_m2=Sum("area_m2")
-            )
-        )
-        cache.set(cache_key, per_code, settings.SUMMARY_CACHE_SECONDS)
-    for row in per_code:
-        code = int(row["gewascode"])
-        g = gebruik_map.get(code, GewasGebruik.GEBRUIK_ONBEKEND)
-        parcels[g] += row["parcel_count"]
-        am = row["area_m2"]
-        if am is not None:
-            areas[g] += float(am)
-
-    order = (
-        GewasGebruik.GEBRUIK_VEEVOER,
-        GewasGebruik.GEBRUIK_VOEDSEL,
-        GewasGebruik.GEBRUIK_GEMENGD,
-        GewasGebruik.GEBRUIK_NIET_VOEDSEL,
-        GewasGebruik.GEBRUIK_ONBEKEND,
-    )
-    seen = set(order)
-    out = []
-    for g in order:
-        pc = parcels.get(g, 0)
-        am2 = areas.get(g, 0.0)
-        out.append(
-            {
-                "gebruik": g,
-                "parcel_count": pc,
-                "area_m2": am2 if am2 > 0 else None,
-            }
-        )
-    for g in sorted(set(parcels) | set(areas)):
-        if g in seen:
-            continue
-        pc = parcels.get(g, 0)
-        am2 = areas.get(g, 0.0)
-        out.append(
-            {
-                "gebruik": g,
-                "parcel_count": pc,
-                "area_m2": am2 if am2 > 0 else None,
-            }
-        )
-
+    out = fetch_gebruik_summary_rows(jaar_param)
     serializer = GebruikSummarySerializer(out, many=True)
-    return Response(serializer.data)
+    return Response(serializer.data, headers=national_http_cache_headers())
 
 
 @api_view(["GET"])

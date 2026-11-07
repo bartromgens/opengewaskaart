@@ -40,6 +40,31 @@
   }
 }
 
+.map-legend-viewport-colors {
+  margin-top: 0.5rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+
+  &.disabled {
+    opacity: 0.55;
+  }
+
+  --mat-slide-toggle-label-text-size: 0.75rem;
+
+  ::ng-deep .mdc-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25;
+  }
+}
+
+.map-legend-viewport-colors-hint {
+  margin: 0.2rem 0 0 2.75rem;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  color: #757575;
+}
+
 .map-container {
   width: 100%;
   height: 100%;
@@ -88,19 +113,60 @@
   }
 }
 
-.map-legend {
+.map-legend-stack {
   position: absolute;
   bottom: 1rem;
   right: 1rem;
-  max-width: min(18rem, 42vw);
-  max-height: 40vh;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: stretch;
+  max-width: min(20rem, 42vw);
+}
+
+.map-viewport-ranking,
+.map-legend {
+  max-width: min(20rem, 42vw);
+  max-height: 36vh;
   overflow: auto;
   padding: 0.5rem 0.65rem 0.65rem;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   font-size: 0.8rem;
-  z-index: 1;
+}
+
+.map-viewport-ranking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.map-viewport-spinner {
+  flex-shrink: 0;
+}
+
+.map-viewport-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.map-viewport-name {
+  line-height: 1.2;
+}
+
+.map-viewport-stats {
+  font-size: 0.72rem;
+  color: #616161;
+}
+
+.map-viewport-pct {
+  margin-left: 0.2rem;
 }
 
 .map-legend-title {

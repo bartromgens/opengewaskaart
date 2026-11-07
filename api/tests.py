@@ -5,7 +5,8 @@ from tempfile import TemporaryDirectory
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import TestCase
+from django.core.cache import cache
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
@@ -319,6 +320,98 @@ class GewassenSummaryViewTests(TestCase):
         self.assertEqual(by_code[305]["gebruik"], GewasGebruik.GEBRUIK_ONBEKEND)
         self.assertTrue(by_code[201]["gebruik_geclassificeerd"])
         self.assertFalse(by_code[305]["gebruik_geclassificeerd"])
+
+    def test_gewassen_summary_bbox_orders_by_area(self) -> None:
+        url = reverse("gewassen-summary")
+        bbox = "5.29,52.19,5.32,52.22"
+        response = self.client.get(url, {"bbox": bbox})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["gewascode"], 201)
+        self.assertEqual(data[1]["gewascode"], 305)
+
+    def test_gewassen_summary_bbox_outside_returns_empty(self) -> None:
+        url = reverse("gewassen-summary")
+        response = self.client.get(url, {"bbox": "1,50,2,51"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_gewassen_summary_invalid_bbox(self) -> None:
+        url = reverse("gewassen-summary")
+        response = self.client.get(url, {"bbox": "not-a-box"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_gewassen_summary_gewas_filter(self) -> None:
+        url = reverse("gewassen-summary")
+        response = self.client.get(url, {"gewas": "305", "bbox": "5.29,52.19,5.32,52.22"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["gewascode"], 305)
+
+    def test_gewassen_summary_national_cache_control(self) -> None:
+        url = reverse("gewassen-summary")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Cache-Control"), "public, max-age=300")
+
+    def test_gewassen_summary_small_bbox_exact_excludes_nearby_parcel(self) -> None:
+        Gewasperceel.objects.create(
+            gewascode=999,
+            gewas="Buiten exacte bbox",
+            category="Granen",
+            area_m2=50.0,
+            geometry_hash="edge",
+            jaar=2025,
+            status="Definitief",
+            geometry=self.geometry,
+            min_lon=5.301,
+            min_lat=52.206,
+            max_lon=5.304,
+            max_lat=52.209,
+        )
+        url = reverse("gewassen-summary")
+        response = self.client.get(
+            url,
+            {"bbox": "5.305,52.205,5.315,52.215"},
+        )
+        self.assertEqual(response.status_code, 200)
+        codes = {row["gewascode"] for row in response.json()}
+        self.assertNotIn(999, codes)
+
+    @override_settings(
+        CACHES={
+            "default": {
+                "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            }
+        }
+    )
+    def test_gewassen_summary_large_bbox_cached(self) -> None:
+        cache.clear()
+        url = reverse("gewassen-summary")
+        bbox = "4.0,51.0,6.0,53.0"
+        first = self.client.get(url, {"bbox": bbox, "limit": "5"})
+        self.assertEqual(first.status_code, 200)
+        codes_first = [row["gewascode"] for row in first.json()]
+
+        Gewasperceel.objects.create(
+            gewascode=888,
+            gewas="Nieuw na cache",
+            category="Granen",
+            area_m2=99999.0,
+            geometry_hash="cachemiss",
+            jaar=2025,
+            status="Definitief",
+            geometry=self.geometry,
+            min_lon=5.3,
+            min_lat=52.2,
+            max_lon=5.31,
+            max_lat=52.21,
+        )
+        second = self.client.get(url, {"bbox": bbox, "limit": "5"})
+        codes_second = [row["gewascode"] for row in second.json()]
+        self.assertEqual(codes_first, codes_second)
 
 
 class GewasGebruikListViewTests(TestCase):

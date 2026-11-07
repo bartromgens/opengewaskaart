@@ -1,6 +1,10 @@
+import math
 from typing import Optional, Tuple
 
 from django.core.management.base import CommandError
+
+BBOX_CACHE_ROUND_DEG = 0.05
+VIEWPORT_CACHE_MIN_SPAN_DEG = 0.5
 
 REGION_BBOXES: dict[str, Tuple[float, float, float, float]] = {
     "netherlands": (3.2, 50.75, 7.2, 53.7),
@@ -60,3 +64,66 @@ def filter_queryset_by_bbox(queryset, bbox: Tuple[float, float, float, float]):
         min_lat__lte=max_lat,
         max_lat__gte=min_lat,
     )
+
+
+def round_bbox(
+    bbox: Tuple[float, float, float, float],
+    step: float = BBOX_CACHE_ROUND_DEG,
+) -> Tuple[float, float, float, float]:
+    min_lon, min_lat, max_lon, max_lat = bbox
+
+    def floor_coord(value: float) -> float:
+        return math.floor(value / step) * step
+
+    def ceil_coord(value: float) -> float:
+        return math.ceil(value / step) * step
+
+    return (
+        floor_coord(min_lon),
+        floor_coord(min_lat),
+        ceil_coord(max_lon),
+        ceil_coord(max_lat),
+    )
+
+
+def parse_gewas_codes_param(raw: Optional[str]) -> tuple[Optional[list[int]], bool]:
+    if raw is None or raw.strip() == "":
+        return None, True
+    codes: list[int] = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            codes.append(int(part))
+        except ValueError:
+            return None, False
+    if not codes:
+        return None, True
+    return codes, True
+
+
+def bbox_spans(bbox: Tuple[float, float, float, float]) -> Tuple[float, float]:
+    min_lon, min_lat, max_lon, max_lat = bbox
+    return max_lon - min_lon, max_lat - min_lat
+
+
+def is_small_viewport_bbox(bbox: Tuple[float, float, float, float]) -> bool:
+    lon_span, lat_span = bbox_spans(bbox)
+    return (
+        lon_span < VIEWPORT_CACHE_MIN_SPAN_DEG
+        and lat_span < VIEWPORT_CACHE_MIN_SPAN_DEG
+    )
+
+
+def prepare_summary_bbox(
+    parsed: Tuple[float, float, float, float],
+) -> Tuple[Tuple[float, float, float, float], bool]:
+    """Return query bbox and whether Django cache may store the aggregation."""
+    if is_small_viewport_bbox(parsed):
+        return parsed, False
+    return round_bbox(parsed), True
+
+
+def bbox_cache_key_part(bbox: Tuple[float, float, float, float]) -> str:
+    return ",".join(f"{v:.4f}" for v in bbox)

@@ -13,6 +13,7 @@ import { ActivatedRoute } from '@angular/router';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   Map as MapLibreMap,
   NavigationControl,
@@ -30,6 +31,7 @@ import {
 } from '../api.service';
 import {
   assignSelectedGewasColors,
+  assignViewportGewasColors,
   buildGebruikFillColorExpression,
   buildGebruikLegendEntries,
   buildGewasFillColorExpression,
@@ -37,6 +39,11 @@ import {
   buildLegendEntries,
   buildSelectedGewasFillColorExpression,
   buildSelectedLegendEntries,
+  buildViewportGewasFillColorExpression,
+  buildViewportLegendEntries,
+  formatHa,
+  gewasDisplayColor,
+  viewportGewasDisplayColor,
   type ColorMode,
   type LegendEntry,
 } from '../crop-colors';
@@ -57,6 +64,16 @@ const DEFAULT_CENTER: [number, number] = [5.3, 52.2];
 // a 1px stroke covers most of each parcel and hides the crop colors.
 const OUTLINE_MIN_ZOOM = 12;
 const MAP_GEWAS_COLOR_TOP_N = 8;
+const VIEWPORT_GEWASSEN_TOP_N = 10;
+const VIEWPORT_GEWASSEN_DYNAMIC_TOP_N = 15;
+const VIEWPORT_GEWASSEN_DEBOUNCE_MS = 400;
+const NETHERLANDS_BOUNDS = {
+  west: 3.2,
+  south: 50.75,
+  east: 7.2,
+  north: 53.7,
+};
+const WHOLE_COUNTRY_MARGIN_DEG = 0.15;
 
 interface TileJson {
   minzoom?: number;
@@ -72,6 +89,7 @@ interface TileJson {
     MatButtonToggleModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSlideToggleModule,
     PerceelDetailPanelComponent,
   ],
   templateUrl: './home.html',
@@ -100,6 +118,29 @@ export class HomeComponent implements OnInit, OnDestroy {
   /** Multi-select filter; empty means show all gewassen. */
   selectedGewassen = signal<GewasSummary[]>([]);
   readonly selectedGewasColors = computed(() => assignSelectedGewasColors(this.selectedGewassen()));
+  /** Top gewassen in the current map view (by area), from /api/gewassen/?bbox=. */
+  viewportGewassen = signal<GewasSummary[]>([]);
+  viewportGewassenLoading = signal(false);
+  readonly showViewportGewassenPanel = computed(
+    () => !this.viewportShowsWholeCountry() && this.viewportGewassen().length > 0,
+  );
+  readonly viewportTotalAreaM2 = computed(() =>
+    this.viewportGewassen().reduce((sum, row) => sum + (row.area_m2 ?? 0), 0),
+  );
+  /** When on, map fill and gewas legend follow top crops in the current view. */
+  viewportColors = signal(false);
+  readonly viewportColorsToggleEnabled = computed(
+    () => this.colorMode() === 'gewas' && this.selectedGewassen().length === 0,
+  );
+  readonly usesViewportColors = computed(
+    () =>
+      this.viewportColors() &&
+      this.viewportColorsToggleEnabled() &&
+      this.viewportGewassen().length > 0,
+  );
+  private readonly viewportGewasColorMap = computed(() =>
+    assignViewportGewasColors(this.viewportGewassen()),
+  );
 
   private selectedFeatureId: number | null = null;
   private parcelLayersAdded = false;
@@ -113,9 +154,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   private gebruikFillExpression: ExpressionSpecification | null = null;
   private gebruikSummaryRows: GebruikSummary[] = [];
   private pendingGewasFilterCodes: readonly number[] | null = null;
+  private viewportFetchTimer: ReturnType<typeof setTimeout> | null = null;
+  private viewportRequestId = 0;
+  private viewportShowsWholeCountry = signal(true);
+  private viewportFetchAllowed = false;
 
   ngOnInit(): void {
     this.colorMode.set(this.readColorModeFromQuery());
+    this.viewportColors.set(this.readViewportColorsFromQuery());
     this.pendingGewasFilterCodes = this.readGewasCodesFromQuery();
     void this.initMap();
     this.loadHealth();
@@ -131,17 +177,55 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.updateUrlFromMap();
   }
 
+  setViewportColors(enabled: boolean): void {
+    if (!this.viewportColorsToggleEnabled() && enabled) {
+      return;
+    }
+    if (this.viewportColors() === enabled) {
+      return;
+    }
+    this.viewportColors.set(enabled);
+    this.refreshLegendForColorMode();
+    this.applyActiveFillPaint();
+    this.scheduleViewportGewassenRefresh();
+    this.updateUrlFromMap();
+  }
+
   onGewasFilterChange(selected: GewasSummary[]): void {
     this.selectedGewassen.set(selected);
     this.applyParcelLayerGewasFilter();
     this.refreshLegendForColorMode();
     this.applyActiveFillPaint();
     this.clearParcelIfFilteredOut();
+    this.scheduleViewportGewassenRefresh();
     this.updateUrlFromMap();
   }
 
   ngOnDestroy(): void {
+    if (this.viewportFetchTimer !== null) {
+      clearTimeout(this.viewportFetchTimer);
+      this.viewportFetchTimer = null;
+    }
     this.map?.remove();
+  }
+
+  viewportGewasColor(row: GewasSummary): string {
+    if (this.usesViewportColors()) {
+      return viewportGewasDisplayColor(row, this.viewportGewasColorMap());
+    }
+    return gewasDisplayColor(row.gewas, row.gewascode, this.topGewassenForMap);
+  }
+
+  viewportAreaSharePercent(row: GewasSummary): string | null {
+    const total = this.viewportTotalAreaM2();
+    if (total <= 0 || row.area_m2 == null) {
+      return null;
+    }
+    return `${((100 * row.area_m2) / total).toFixed(1)}%`;
+  }
+
+  viewportAreaHa(row: GewasSummary): string {
+    return formatHa(row.area_m2);
   }
 
   closeDetailPanel(): void {
@@ -200,7 +284,10 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.mapLoading.set(false);
       }
     });
-    this.map.on('moveend', () => this.updateUrlFromMap());
+    this.map.on('moveend', () => {
+      this.updateUrlFromMap();
+      this.scheduleViewportGewassenRefresh();
+    });
     this.map.on('click', PERCELEN_FILL_LAYER, (event) => this.onParcelClick(event));
     this.map.on('mouseenter', PERCELEN_FILL_LAYER, () => {
       if (this.map) {
@@ -228,7 +315,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private async fetchTopGewassen(): Promise<GewasSummary[]> {
     try {
-      return await firstValueFrom(this.api.getGewassen(MAP_GEWAS_COLOR_TOP_N));
+      return await firstValueFrom(this.api.getGewassen({ limit: MAP_GEWAS_COLOR_TOP_N }));
     } catch {
       return [];
     }
@@ -252,7 +339,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private async fetchAllGewassen(): Promise<GewasSummary[]> {
     try {
-      return await firstValueFrom(this.api.getGewassen());
+      return await firstValueFrom(this.api.getGewassen({}));
     } catch {
       return [];
     }
@@ -385,7 +472,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.parcelLayersAdded = true;
     // Safety net: clear the indicator once the map settles after adding layers.
-    this.map.once('idle', () => this.mapLoading.set(false));
+    this.map.once('idle', () => {
+      this.mapLoading.set(false);
+      this.viewportFetchAllowed = true;
+      this.scheduleViewportGewassenRefresh();
+    });
     this.applyParcelLayerGewasFilter();
     this.applyActiveFillPaint();
     this.updateUrlFromMap();
@@ -399,6 +490,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.colorMode() === 'gebruik' && this.gebruikFillExpression) {
       return this.gebruikFillExpression;
     }
+    if (this.usesViewportColors()) {
+      return buildViewportGewasFillColorExpression(this.viewportGewassen());
+    }
     return this.gewasFillExpression ?? buildGewasFillColorExpression([]);
   }
 
@@ -410,6 +504,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     const selected = this.selectedGewassen();
     if (selected.length > 0) {
       this.legendEntries.set(buildSelectedLegendEntries(selected, this.selectedGewasColors()));
+      return;
+    }
+    if (this.usesViewportColors()) {
+      this.legendEntries.set(buildViewportLegendEntries(this.viewportGewassen()));
       return;
     }
     this.legendEntries.set(buildLegendEntries(this.topGewassenForMap));
@@ -590,6 +688,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     return kleur === 'gebruik' ? 'gebruik' : 'gewas';
   }
 
+  private readViewportColorsFromQuery(): boolean {
+    return this.route.snapshot.queryParamMap.get('kleurInBeeld') === '1';
+  }
+
   private getInitialMapState(): { center: [number, number]; zoom: number } {
     const params = this.route.snapshot.queryParamMap;
     const lat = params.get('lat');
@@ -616,6 +718,82 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.location.replaceState('/', this.buildQueryString(center.lng, center.lat, zoom));
   }
 
+  private scheduleViewportGewassenRefresh(): void {
+    if (!this.viewportFetchAllowed) {
+      return;
+    }
+    if (this.viewportFetchTimer !== null) {
+      clearTimeout(this.viewportFetchTimer);
+    }
+    this.viewportFetchTimer = setTimeout(() => {
+      this.viewportFetchTimer = null;
+      void this.refreshViewportGewassen();
+    }, VIEWPORT_GEWASSEN_DEBOUNCE_MS);
+  }
+
+  private isWholeCountryMapView(): boolean {
+    if (!this.map) {
+      return true;
+    }
+    const bounds = this.map.getBounds();
+    const margin = WHOLE_COUNTRY_MARGIN_DEG;
+    return (
+      bounds.getWest() <= NETHERLANDS_BOUNDS.west + margin &&
+      bounds.getSouth() <= NETHERLANDS_BOUNDS.south + margin &&
+      bounds.getEast() >= NETHERLANDS_BOUNDS.east - margin &&
+      bounds.getNorth() >= NETHERLANDS_BOUNDS.north - margin
+    );
+  }
+
+  private async refreshViewportGewassen(): Promise<void> {
+    if (!this.map || !this.parcelLayersAdded) {
+      return;
+    }
+
+    const wholeCountry = this.isWholeCountryMapView();
+    this.viewportShowsWholeCountry.set(wholeCountry);
+    if (wholeCountry) {
+      this.viewportGewassen.set([]);
+      this.viewportGewassenLoading.set(false);
+      this.refreshLegendForColorMode();
+      this.applyActiveFillPaint();
+      return;
+    }
+
+    const requestId = ++this.viewportRequestId;
+    const bounds = this.map.getBounds();
+    const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+    const gewasCodes = this.selectedGewassen().map((g) => g.gewascode);
+
+    this.viewportGewassenLoading.set(true);
+    try {
+      const rows = await firstValueFrom(
+        this.api.getGewassen({
+          limit:
+            this.viewportColors() && this.viewportColorsToggleEnabled()
+              ? VIEWPORT_GEWASSEN_DYNAMIC_TOP_N
+              : VIEWPORT_GEWASSEN_TOP_N,
+          bbox,
+          gewasCodes: gewasCodes.length > 0 ? gewasCodes : undefined,
+        }),
+      );
+      if (requestId !== this.viewportRequestId) {
+        return;
+      }
+      this.viewportGewassen.set(rows);
+      this.refreshLegendForColorMode();
+      this.applyActiveFillPaint();
+    } catch {
+      if (requestId !== this.viewportRequestId) {
+        return;
+      }
+    } finally {
+      if (requestId === this.viewportRequestId) {
+        this.viewportGewassenLoading.set(false);
+      }
+    }
+  }
+
   private buildQueryString(lng: number, lat: number, zoom: number): string {
     const params = new URLSearchParams();
     params.set('lat', lat.toFixed(5));
@@ -623,6 +801,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     params.set('zoom', String(zoom));
     if (this.colorMode() === 'gebruik') {
       params.set('kleur', 'gebruik');
+    }
+    if (this.viewportColors()) {
+      params.set('kleurInBeeld', '1');
     }
     const gewasCodes = this.selectedGewassen().map((g) => g.gewascode);
     if (gewasCodes.length > 0) {

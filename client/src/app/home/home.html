@@ -42,28 +42,79 @@
     </div>
   }
 
-  @if (legendEntries().length > 1 || selectedGewassen().length > 0) {
-    <div
-      class="map-legend"
-      [attr.aria-label]="colorMode() === 'gebruik' ? 'Legenda gebruik' : 'Legenda gewassen'"
-    >
-      <div class="map-legend-title">
-        @if (colorMode() === 'gebruik') {
-          Gebruik (oppervlakte)
-        } @else if (selectedGewassen().length > 0) {
-          Geselecteerde gewassen
-        } @else {
-          Top gewassen (percelentelling)
+  <div class="map-legend-stack">
+    @if (showViewportGewassenPanel() || viewportGewassenLoading()) {
+      <div class="map-viewport-ranking" aria-label="Top gewassen in beeld" aria-live="polite">
+        <div class="map-legend-title map-viewport-ranking-header">
+          <span>In beeld (oppervlakte)</span>
+          @if (viewportGewassenLoading()) {
+            <mat-spinner class="map-viewport-spinner" diameter="16"></mat-spinner>
+          }
+        </div>
+        @if (showViewportGewassenPanel()) {
+          <ul class="map-legend-list map-viewport-list">
+            @for (row of viewportGewassen(); track row.gewascode) {
+              <li>
+                <span
+                  class="map-legend-swatch"
+                  [style.background-color]="viewportGewasColor(row)"
+                ></span>
+                <span class="map-legend-label map-viewport-label">
+                  <span class="map-viewport-name">{{ row.gewas }}</span>
+                  <span class="map-viewport-stats">
+                    {{ viewportAreaHa(row) }}
+                    @if (viewportAreaSharePercent(row); as pct) {
+                      <span class="map-viewport-pct">({{ pct }})</span>
+                    }
+                  </span>
+                </span>
+              </li>
+            }
+          </ul>
         }
       </div>
-      <ul class="map-legend-list">
-        @for (entry of legendEntries(); track entry.label) {
-          <li>
-            <span class="map-legend-swatch" [style.background-color]="entry.color"></span>
-            <span class="map-legend-label">{{ entry.label }}</span>
-          </li>
+    }
+
+    @if (legendEntries().length > 1 || selectedGewassen().length > 0) {
+      <div
+        class="map-legend"
+        [attr.aria-label]="colorMode() === 'gebruik' ? 'Legenda gebruik' : 'Legenda gewassen'"
+      >
+        <div class="map-legend-title">
+          @if (colorMode() === 'gebruik') {
+            Gebruik (oppervlakte)
+          } @else if (selectedGewassen().length > 0) {
+            Geselecteerde gewassen
+          } @else if (usesViewportColors()) {
+            Top gewassen in dit gebied
+          } @else {
+            Top gewassen (percelentelling)
+          }
+        </div>
+        <ul class="map-legend-list">
+          @for (entry of legendEntries(); track entry.label) {
+            <li>
+              <span class="map-legend-swatch" [style.background-color]="entry.color"></span>
+              <span class="map-legend-label">{{ entry.label }}</span>
+            </li>
+          }
+        </ul>
+        @if (colorMode() === 'gewas' && selectedGewassen().length === 0) {
+          <div class="map-legend-viewport-colors" [class.disabled]="!viewportColorsToggleEnabled()">
+            <mat-slide-toggle
+              [checked]="viewportColors()"
+              [disabled]="!viewportColorsToggleEnabled()"
+              (change)="setViewportColors($event.checked)"
+              aria-label="Kaartkleuren gebaseerd op het zichtbare gebied"
+            >
+              Dynamische kleuren
+            </mat-slide-toggle>
+            <p class="map-legend-viewport-colors-hint">
+              Kleuren passen zich aan de top gewassen in beeld aan
+            </p>
+          </div>
         }
-      </ul>
-    </div>
-  }
+      </div>
+    }
+  </div>
 </div>

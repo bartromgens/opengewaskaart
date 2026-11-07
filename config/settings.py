@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "api",
+    "api.apps.ApiConfig",
 ]
 
 MIDDLEWARE = [
@@ -87,7 +87,8 @@ CACHES = {
         ),
     }
 }
-SUMMARY_CACHE_SECONDS = 60 * 60
+SUMMARY_CACHE_SECONDS = 24 * 60 * 60
+NATIONAL_HTTP_CACHE_SECONDS = 300
 
 DATABASES = {
     'default': {

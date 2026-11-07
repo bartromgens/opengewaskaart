@@ -11,12 +11,7 @@ export interface GeoJsonGeometry {
   coordinates: unknown;
 }
 
-export type GewasGebruikKey =
-  | 'veevoer'
-  | 'voedsel'
-  | 'gemengd'
-  | 'niet_voedsel'
-  | 'onbekend';
+export type GewasGebruikKey = 'veevoer' | 'voedsel' | 'gemengd' | 'niet_voedsel' | 'onbekend';
 
 export interface GewasGebruikMap {
   gewascode: number;
@@ -70,10 +65,23 @@ export class ApiService {
     return this.http.get<Gewasperceel>(`/api/percelen/${id}/`);
   }
 
-  getGewassen(limit?: number): Observable<GewasSummary[]> {
+  getGewassen(options?: {
+    limit?: number;
+    bbox?: string;
+    gewasCodes?: readonly number[];
+  }): Observable<GewasSummary[]> {
     let params = new HttpParams();
+    const limit = options?.limit;
     if (limit !== undefined) {
       params = params.set('limit', String(limit));
+    }
+    const bbox = options?.bbox;
+    if (bbox !== undefined && bbox.length > 0) {
+      params = params.set('bbox', bbox);
+    }
+    const codes = options?.gewasCodes;
+    if (codes !== undefined && codes.length > 0) {
+      params = params.set('gewas', codes.join(','));
     }
     return this.http.get<GewasSummary[]>('/api/gewassen/', { params });
   }

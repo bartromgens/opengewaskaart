@@ -104,6 +104,108 @@ function selectedGewasColorAtIndex(index: number): string {
   return hslToHex(hue, 0.72, 0.52);
 }
 
+function fixedGewasColorByName(gewas: string): string | null {
+  const lower = gewas.toLowerCase();
+  if (lower.includes('grasland')) {
+    return GRASLAND_GEWAS_COLOR;
+  }
+  if (lower.includes('maïs') || lower.includes('mais')) {
+    return MAIS_GEWAS_COLOR;
+  }
+  if (lower.includes('tarwe')) {
+    return TARWE_GEWAS_COLOR;
+  }
+  return null;
+}
+
+function gewasNamePatternCase(codeMatch: ExpressionSpecification): ExpressionSpecification {
+  const nameLower: ExpressionSpecification = [
+    'downcase',
+    ['to-string', ['get', 'gewas']],
+  ] as unknown as ExpressionSpecification;
+
+  return [
+    'case',
+    ['>=', ['index-of', 'grasland', nameLower], 0],
+    GRASLAND_GEWAS_COLOR,
+    ['any', ['>=', ['index-of', 'maïs', nameLower], 0], ['>=', ['index-of', 'mais', nameLower], 0]],
+    MAIS_GEWAS_COLOR,
+    ['>=', ['index-of', 'tarwe', nameLower], 0],
+    TARWE_GEWAS_COLOR,
+    codeMatch,
+  ] as unknown as ExpressionSpecification;
+}
+
+/**
+ * Colours for top gewassen in the current view: fixed grasland / maïs / tarwe, then
+ * distinct palette hues for other crops in viewport order.
+ */
+export function assignViewportGewasColors(viewport: GewasSummary[]): Map<number, string> {
+  const map = new Map<number, string>();
+  let paletteOrder = 0;
+  for (const row of viewport) {
+    if (map.has(row.gewascode)) {
+      continue;
+    }
+    const fixed = fixedGewasColorByName(row.gewas);
+    if (fixed !== null) {
+      map.set(row.gewascode, fixed);
+    } else {
+      map.set(row.gewascode, selectedGewasColorAtIndex(paletteOrder));
+      paletteOrder += 1;
+    }
+  }
+  return map;
+}
+
+export function viewportGewasDisplayColor(
+  row: GewasSummary,
+  colors: ReadonlyMap<number, string>,
+): string {
+  const fixed = fixedGewasColorByName(row.gewas);
+  if (fixed !== null) {
+    return fixed;
+  }
+  return colors.get(row.gewascode) ?? OTHER_GEWAS_COLOR;
+}
+
+export function buildViewportGewasFillColorExpression(
+  viewport: GewasSummary[],
+): ExpressionSpecification {
+  const colorByCode = assignViewportGewasColors(viewport);
+  const pairs: (number | string)[] = [];
+  for (const [code, color] of colorByCode) {
+    pairs.push(code, color);
+  }
+
+  const codeMatch: ExpressionSpecification = [
+    'match',
+    ['to-number', ['get', 'gewascode']],
+    ...pairs,
+    OTHER_GEWAS_COLOR,
+  ] as unknown as ExpressionSpecification;
+
+  return gewasNamePatternCase(codeMatch);
+}
+
+export function buildViewportLegendEntries(viewport: GewasSummary[]): LegendEntry[] {
+  const colors = assignViewportGewasColors(viewport);
+  const seen = new Set<number>();
+  const entries: LegendEntry[] = [];
+  for (const row of viewport) {
+    if (seen.has(row.gewascode)) {
+      continue;
+    }
+    seen.add(row.gewascode);
+    entries.push({
+      label: row.gewas,
+      color: viewportGewasDisplayColor(row, colors),
+    });
+  }
+  entries.push({ label: 'Overig', color: OTHER_GEWAS_COLOR });
+  return entries;
+}
+
 /**
  * Distinct colours in selection order: first N use `GEWAS_PALETTE`, then golden-angle hues.
  */
@@ -188,15 +290,9 @@ function paletteIndexForCode(gewascode: number, orderedCodes: readonly number[])
  * Mirrors map styling: fixed grasland / maïs / tarwe, then top-N by code, else brown.
  */
 export function gewasDisplayColor(gewas: string, gewascode: number, top: GewasSummary[]): string {
-  const lower = gewas.toLowerCase();
-  if (lower.includes('grasland')) {
-    return GRASLAND_GEWAS_COLOR;
-  }
-  if (lower.includes('maïs') || lower.includes('mais')) {
-    return MAIS_GEWAS_COLOR;
-  }
-  if (lower.includes('tarwe')) {
-    return TARWE_GEWAS_COLOR;
+  const fixed = fixedGewasColorByName(gewas);
+  if (fixed !== null) {
+    return fixed;
   }
 
   const codes = orderedTopCodes(top);
@@ -233,21 +329,7 @@ export function buildGewasFillColorExpression(top: GewasSummary[]): ExpressionSp
     OTHER_GEWAS_COLOR,
   ] as unknown as ExpressionSpecification;
 
-  const nameLower: ExpressionSpecification = [
-    'downcase',
-    ['to-string', ['get', 'gewas']],
-  ] as unknown as ExpressionSpecification;
-
-  return [
-    'case',
-    ['>=', ['index-of', 'grasland', nameLower], 0],
-    GRASLAND_GEWAS_COLOR,
-    ['any', ['>=', ['index-of', 'maïs', nameLower], 0], ['>=', ['index-of', 'mais', nameLower], 0]],
-    MAIS_GEWAS_COLOR,
-    ['>=', ['index-of', 'tarwe', nameLower], 0],
-    TARWE_GEWAS_COLOR,
-    codeMatch,
-  ] as unknown as ExpressionSpecification;
+  return gewasNamePatternCase(codeMatch);
 }
 
 export interface LegendEntry {
@@ -293,7 +375,7 @@ export function buildGebruikFillColorExpression(
   ] as unknown as ExpressionSpecification;
 }
 
-function formatHa(areaM2: number | null): string {
+export function formatHa(areaM2: number | null): string {
   if (areaM2 == null || !Number.isFinite(areaM2)) {
     return '—';
   }
