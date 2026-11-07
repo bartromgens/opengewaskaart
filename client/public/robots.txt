@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /logs
+
+Sitemap: https://opengewaskaart.nl/sitemap.xml
