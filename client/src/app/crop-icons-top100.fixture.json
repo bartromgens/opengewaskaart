@@ -1,0 +1,402 @@
+[
+  {
+    "gewas": "Sloot",
+    "parcel_count": 815439
+  },
+  {
+    "gewas": "Grasland, blijvend",
+    "parcel_count": 629306
+  },
+  {
+    "gewas": "Grasland, tijdelijk",
+    "parcel_count": 139763
+  },
+  {
+    "gewas": "Mais, snij-",
+    "parcel_count": 95187
+  },
+  {
+    "gewas": "Houtwal en houtsingel",
+    "parcel_count": 82121
+  },
+  {
+    "gewas": "Groene braak, spontane opkomst",
+    "parcel_count": 77217
+  },
+  {
+    "gewas": "Agrarisch natuurmengsel",
+    "parcel_count": 68636
+  },
+  {
+    "gewas": "Grasland, natuurlijk. Met landbouwactiviteiten.",
+    "parcel_count": 67699
+  },
+  {
+    "gewas": "Natuurterreinen (incl. heide)",
+    "parcel_count": 30624
+  },
+  {
+    "gewas": "Tarwe, winter-",
+    "parcel_count": 21096
+  },
+  {
+    "gewas": "Aardappelen, consumptie",
+    "parcel_count": 19935
+  },
+  {
+    "gewas": "Stroken wild gras",
+    "parcel_count": 18507
+  },
+  {
+    "gewas": "Bieten, suiker-",
+    "parcel_count": 16602
+  },
+  {
+    "gewas": "Bosje",
+    "parcel_count": 9420
+  },
+  {
+    "gewas": "Aardappelen, poot NAK",
+    "parcel_count": 9374
+  },
+  {
+    "gewas": "Knip- of scheerheg",
+    "parcel_count": 9306
+  },
+  {
+    "gewas": "Elzensingel",
+    "parcel_count": 8869
+  },
+  {
+    "gewas": "Aardappelen, zetmeel",
+    "parcel_count": 7522
+  },
+  {
+    "gewas": "Boomgroep",
+    "parcel_count": 7226
+  },
+  {
+    "gewas": "Engels raaigras, groenbemesting, vanggewas",
+    "parcel_count": 7037
+  },
+  {
+    "gewas": "Struweelhaag",
+    "parcel_count": 6902
+  },
+  {
+    "gewas": "Gerst, zomer-",
+    "parcel_count": 6877
+  },
+  {
+    "gewas": "Poel en klein historisch water",
+    "parcel_count": 6747
+  },
+  {
+    "gewas": "Luzerne",
+    "parcel_count": 6603
+  },
+  {
+    "gewas": "Peren. Aangeplant voorafgaande aan lopende seizoen.",
+    "parcel_count": 5742
+  },
+  {
+    "gewas": "Water, overig",
+    "parcel_count": 5465
+  },
+  {
+    "gewas": "Struweelrand",
+    "parcel_count": 5460
+  },
+  {
+    "gewas": "Uien, gele zaai-",
+    "parcel_count": 5300
+  },
+  {
+    "gewas": "Tarwe, zomer-",
+    "parcel_count": 5240
+  },
+  {
+    "gewas": "Ruigtes op landbouwpercelen",
+    "parcel_count": 4926
+  },
+  {
+    "gewas": "Windhaag, in een perceel fruitteelt",
+    "parcel_count": 4407
+  },
+  {
+    "gewas": "Gerst, winter-",
+    "parcel_count": 4013
+  },
+  {
+    "gewas": "Mais, korrel-",
+    "parcel_count": 3992
+  },
+  {
+    "gewas": "Overige gras, groenbemesting, vanggewas",
+    "parcel_count": 3965
+  },
+  {
+    "gewas": "Grasland, natuurlijk. Hoofdfunctie natuur.",
+    "parcel_count": 3891
+  },
+  {
+    "gewas": "Natuurvriendelijke oever",
+    "parcel_count": 3608
+  },
+  {
+    "gewas": "Drachtplanten",
+    "parcel_count": 3549
+  },
+  {
+    "gewas": "Appels. Aangeplant voorafgaande aan lopende seizoen.",
+    "parcel_count": 3249
+  },
+  {
+    "gewas": "Tulp, bloembollen en -knollen",
+    "parcel_count": 2984
+  },
+  {
+    "gewas": "Bossingel",
+    "parcel_count": 2905
+  },
+  {
+    "gewas": "Laanbomen/parkbomen, opzetters, open grond",
+    "parcel_count": 2633
+  },
+  {
+    "gewas": "Schouwpad",
+    "parcel_count": 2484
+  },
+  {
+    "gewas": "Italiaans raaigras, groenbemesting, vanggewas",
+    "parcel_count": 2161
+  },
+  {
+    "gewas": "Bos, blijvend, met herplantplicht",
+    "parcel_count": 2142
+  },
+  {
+    "gewas": "Bos- en haagplanten, open grond",
+    "parcel_count": 2118
+  },
+  {
+    "gewas": "Hakhoutbosje",
+    "parcel_count": 1783
+  },
+  {
+    "gewas": "Sierheesters en klimplanten, open grond",
+    "parcel_count": 1607
+  },
+  {
+    "gewas": "Mais, corncob mix",
+    "parcel_count": 1525
+  },
+  {
+    "gewas": "Laan",
+    "parcel_count": 1433
+  },
+  {
+    "gewas": "Sierconiferen, open grond",
+    "parcel_count": 1425
+  },
+  {
+    "gewas": "Rogge, korrelgewas",
+    "parcel_count": 1425
+  },
+  {
+    "gewas": "Granen, overig",
+    "parcel_count": 1411
+  },
+  {
+    "gewas": "Engels raaigras, graszaad",
+    "parcel_count": 1393
+  },
+  {
+    "gewas": "Lelie, bloembollen en -knollen",
+    "parcel_count": 1374
+  },
+  {
+    "gewas": "Hoogstamboomgaard",
+    "parcel_count": 1370
+  },
+  {
+    "gewas": "Uien, rode zaai-",
+    "parcel_count": 1323
+  },
+  {
+    "gewas": "Klaver, rode, groenbemesting, vanggewas",
+    "parcel_count": 1310
+  },
+  {
+    "gewas": "Uien, poot en plant, 2e jaars",
+    "parcel_count": 1296
+  },
+  {
+    "gewas": "Japanse haver",
+    "parcel_count": 1288
+  },
+  {
+    "gewas": "Asperges, oppervlakte die productie oplevert",
+    "parcel_count": 1232
+  },
+  {
+    "gewas": "Bonen, veld- (onder andere duiven-, paarden-, wierbonen)",
+    "parcel_count": 1207
+  },
+  {
+    "gewas": "Erwten, groene/gele (groen te oogsten)",
+    "parcel_count": 1203
+  },
+  {
+    "gewas": "Rietland",
+    "parcel_count": 1137
+  },
+  {
+    "gewas": "Winterpeen, productie",
+    "parcel_count": 1136
+  },
+  {
+    "gewas": "Laanbomen/parkbomen, spillen, open grond",
+    "parcel_count": 1103
+  },
+  {
+    "gewas": "Soedangras/Sorghum",
+    "parcel_count": 1101
+  },
+  {
+    "gewas": "Bieten, voeder-",
+    "parcel_count": 1056
+  },
+  {
+    "gewas": "Sierheesters en klimplanten, pot- en containerveld",
+    "parcel_count": 1003
+  },
+  {
+    "gewas": "Stamsperziebonen (=stamslabonen), productie",
+    "parcel_count": 1000
+  },
+  {
+    "gewas": "Cichorei",
+    "parcel_count": 995
+  },
+  {
+    "gewas": "Bos zonder herplantplicht",
+    "parcel_count": 984
+  },
+  {
+    "gewas": "Pompoen, productie",
+    "parcel_count": 982
+  },
+  {
+    "gewas": "Overige bloemen, overige bloemkwekerijgewassen",
+    "parcel_count": 877
+  },
+  {
+    "gewas": "Vaste planten, open grond",
+    "parcel_count": 846
+  },
+  {
+    "gewas": "Maiskolvensilage",
+    "parcel_count": 812
+  },
+  {
+    "gewas": "Tagetes patula (Afrikaantje)",
+    "parcel_count": 807
+  },
+  {
+    "gewas": "Overige groenbemesters, vlinderbloemige-",
+    "parcel_count": 804
+  },
+  {
+    "gewas": "Haver",
+    "parcel_count": 792
+  },
+  {
+    "gewas": "Klaver, rode, klaverzaad",
+    "parcel_count": 782
+  },
+  {
+    "gewas": "Aardappelen, poot TBM",
+    "parcel_count": 776
+  },
+  {
+    "gewas": "Pioenroos, overige bloemkwekerijgewassen",
+    "parcel_count": 774
+  },
+  {
+    "gewas": "Hennep, vezel-",
+    "parcel_count": 772
+  },
+  {
+    "gewas": "Vlas, vezel-",
+    "parcel_count": 743
+  },
+  {
+    "gewas": "Tuunwallen",
+    "parcel_count": 719
+  },
+  {
+    "gewas": "Waspeen, productie",
+    "parcel_count": 708
+  },
+  {
+    "gewas": "Kerstbomen",
+    "parcel_count": 699
+  },
+  {
+    "gewas": "Riet in water, anders dan een subsidiabele sloot",
+    "parcel_count": 679
+  },
+  {
+    "gewas": "Triticale",
+    "parcel_count": 655
+  },
+  {
+    "gewas": "Broccoli, productie",
+    "parcel_count": 646
+  },
+  {
+    "gewas": "Tijdelijk onbeteelde grond, anders dan voor publieke werken",
+    "parcel_count": 642
+  },
+  {
+    "gewas": "Bloemkool, zomer, productie",
+    "parcel_count": 634
+  },
+  {
+    "gewas": "Kersen, zoet",
+    "parcel_count": 632
+  },
+  {
+    "gewas": "Witte kool, productie",
+    "parcel_count": 619
+  },
+  {
+    "gewas": "Miscanthus (olifantsgras)",
+    "parcel_count": 603
+  },
+  {
+    "gewas": "Overige niet genoemde groenten, productie",
+    "parcel_count": 602
+  },
+  {
+    "gewas": "Riet",
+    "parcel_count": 590
+  },
+  {
+    "gewas": "Narcis, bloembollen en -knollen",
+    "parcel_count": 554
+  },
+  {
+    "gewas": "Overige bloemen, bloembollen en -knollen",
+    "parcel_count": 530
+  },
+  {
+    "gewas": "Witlofwortel, productie",
+    "parcel_count": 529
+  },
+  {
+    "gewas": "Vaste planten, pot- en containerteelt",
+    "parcel_count": 527
+  }
+]

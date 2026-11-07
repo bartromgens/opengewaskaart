@@ -5,15 +5,13 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSort, MatSortModule } from '@angular/material/sort';
-import {
-  MatTableDataSource,
-  MatTableModule,
-} from '@angular/material/table';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { ApiService, GewasSummary } from '../api.service';
 import { gebruikLabel } from '../crop-colors';
+import { cropIconPath } from '../crop-icons';
 
 @Component({
   selector: 'app-gewassen',
@@ -31,6 +29,8 @@ import { gebruikLabel } from '../crop-colors';
   styleUrl: './gewassen.scss',
 })
 export class GewassenComponent implements OnInit {
+  readonly cropIconPath = cropIconPath;
+
   private api = inject(ApiService);
 
   private static readonly FILTER_UNCLASSIFIED = 'gewassen-unclassified';

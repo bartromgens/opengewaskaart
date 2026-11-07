@@ -1,12 +1,31 @@
 <mat-toolbar color="primary" class="app-toolbar">
   <a routerLink="/" class="app-title">{{ title }}</a>
   <span class="spacer"></span>
-  <a mat-button routerLink="/gewassen" routerLinkActive="active-nav-link">Gewassen</a>
-  <a mat-button routerLink="/categorieen" routerLinkActive="active-nav-link">Categorieën</a>
-  @if (auth.isStaff()) {
-    <a mat-button routerLink="/logs" routerLinkActive="active-nav-link">Logs</a>
-  }
-  <a mat-button routerLink="/over" routerLinkActive="active-nav-link">Over</a>
+  <nav class="app-nav-desktop" aria-label="Hoofdnavigatie">
+    <a mat-button routerLink="/gewassen" routerLinkActive="active-nav-link">Gewassen</a>
+    <a mat-button routerLink="/categorieen" routerLinkActive="active-nav-link">Categorieën</a>
+    @if (auth.isStaff()) {
+      <a mat-button routerLink="/logs" routerLinkActive="active-nav-link">Logs</a>
+    }
+    <a mat-button routerLink="/over" routerLinkActive="active-nav-link">Over</a>
+  </nav>
+  <button
+    type="button"
+    mat-icon-button
+    class="app-nav-menu-trigger"
+    [matMenuTriggerFor]="navMenu"
+    aria-label="Menu"
+  >
+    <mat-icon>menu</mat-icon>
+  </button>
+  <mat-menu #navMenu="matMenu">
+    <a mat-menu-item routerLink="/gewassen">Gewassen</a>
+    <a mat-menu-item routerLink="/categorieen">Categorieën</a>
+    @if (auth.isStaff()) {
+      <a mat-menu-item routerLink="/logs">Logs</a>
+    }
+    <a mat-menu-item routerLink="/over">Over</a>
+  </mat-menu>
 </mat-toolbar>
 
 <main class="main-content">

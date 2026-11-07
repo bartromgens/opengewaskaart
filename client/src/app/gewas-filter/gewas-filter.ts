@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -13,11 +13,16 @@ import { MatInputModule } from '@angular/material/input';
 import { startWith } from 'rxjs/operators';
 
 import type { GewasSummary } from '../api.service';
+import { injectSmallScreen } from '../shared/small-screen';
 
 const MAX_OPTIONS = 50;
 
 @Component({
   selector: 'app-gewas-filter',
+  host: {
+    class: 'gewas-filter-host',
+    '[class.gewas-filter-host-expanded]': 'smallScreen() && panelOpen()',
+  },
   imports: [
     ReactiveFormsModule,
     MatAutocompleteModule,
@@ -38,10 +43,27 @@ export class GewasFilterComponent {
 
   queryCtrl = new FormControl('', { nonNullable: true });
 
+  readonly smallScreen = injectSmallScreen();
+  readonly panelOpen = signal(true);
+
+  readonly showCompactTrigger = computed(() => this.smallScreen() && !this.panelOpen());
+  readonly showPanel = computed(() => !this.smallScreen() || this.panelOpen());
+
   private query = toSignal(
     this.queryCtrl.valueChanges.pipe(startWith(this.queryCtrl.value), takeUntilDestroyed()),
     { initialValue: '' },
   );
+
+  constructor() {
+    effect(() => {
+      const small = this.smallScreen();
+      if (!small) {
+        this.panelOpen.set(true);
+      } else {
+        this.panelOpen.set(false);
+      }
+    });
+  }
 
   filteredOptions = computed(() => {
     const all = this.gewassen();
@@ -64,6 +86,10 @@ export class GewasFilterComponent {
 
     return all.filter(match).slice(0, MAX_OPTIONS);
   });
+
+  togglePanel(): void {
+    this.panelOpen.update((open) => !open);
+  }
 
   onOptionSelected(event: MatAutocompleteSelectedEvent): void {
     const code = event.option.value as number;

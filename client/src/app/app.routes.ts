@@ -11,8 +11,7 @@ export const routes: Routes = [
   },
   {
     path: 'categorieen',
-    loadComponent: () =>
-      import('./categorieen/categorieen').then((m) => m.CategorieenComponent),
+    loadComponent: () => import('./categorieen/categorieen').then((m) => m.CategorieenComponent),
   },
   {
     path: 'over',

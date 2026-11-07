@@ -15,7 +15,12 @@
       <mat-icon>close</mat-icon>
     </button>
 
-    <h2>{{ parcel.gewas }}</h2>
+    <h2 class="detail-gewas-title">
+      @if (cropIconPath(parcel.gewas); as icon) {
+        <img class="crop-gewas-icon" [src]="icon" alt="" />
+      }
+      <span>{{ parcel.gewas }}</span>
+    </h2>
     <dl>
       <div>
         <dt>Jaar</dt>

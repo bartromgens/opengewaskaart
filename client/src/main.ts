@@ -11,6 +11,4 @@ registerLocaleData(localeNl, 'nl-NL');
 
 configureMaplibreWorker();
 
-bootstrapApplication(App, appConfig)
-  .catch((err) => console.error(err));
-
+bootstrapApplication(App, appConfig).catch((err) => console.error(err));

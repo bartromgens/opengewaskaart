@@ -1,0 +1,12 @@
+Open Crop Icons (CC0 1.0)
+https://github.com/openfarmcc/open-crop-icons
+
+The files under open-crop-icons/ are from the Open Crop Icons project by the OpenFarm
+community. They are released under CC0 1.0 (public domain). You may use them without
+restriction. Attribution is not required; see the project README for details.
+
+These files live under client/public/assets/crop-icons/ so they are copied into the
+Angular build output at /assets/crop-icons/.
+
+Original icons in original/ (grasland, tulip, flower-bulb) are part of OpenGewasKaart
+and licensed under the same terms as the application (MIT).

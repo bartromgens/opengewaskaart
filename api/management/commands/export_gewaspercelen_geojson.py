@@ -25,6 +25,7 @@ def feature_from_row(row: Gewasperceel) -> dict:
             "gewas": row.gewas,
             "category": row.category,
             "status": row.status,
+            "area_m2": row.area_m2,
         },
         "geometry": json.loads(row.geometry),
     }
@@ -103,6 +104,7 @@ class Command(BaseCommand):
                 "gewas",
                 "category",
                 "status",
+                "area_m2",
                 "geometry",
             ).iterator(chunk_size=BATCH_SIZE):
                 feature = feature_from_row(row)

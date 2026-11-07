@@ -4,8 +4,38 @@
   height: 100%;
 }
 
+$app-breakpoint: 760px;
+
 .app-toolbar {
   flex-shrink: 0;
+}
+
+.app-nav-desktop {
+  display: flex;
+  align-items: center;
+  gap: 0;
+
+  @media (max-width: $app-breakpoint) {
+    display: none;
+  }
+}
+
+.app-nav-menu-trigger {
+  display: none;
+
+  @media (max-width: $app-breakpoint) {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: $app-breakpoint) {
+  .app-title {
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
 }
 
 .app-title {
