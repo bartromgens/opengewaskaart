@@ -78,14 +78,19 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 # Summary endpoints scan the whole parcel table; cache their results.
-# Disabled under `manage.py test` so tests always see fresh data.
+# File cache is shared by gunicorn workers. Disabled under `manage.py test`.
+_SUMMARY_CACHE_DIR = BASE_DIR / "var" / "cache"
+_UNDER_TEST = len(sys.argv) > 1 and sys.argv[1] == "test"
+if not _UNDER_TEST:
+    _SUMMARY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 CACHES = {
-    'default': {
-        'BACKEND': (
-            'django.core.cache.backends.dummy.DummyCache'
-            if len(sys.argv) > 1 and sys.argv[1] == 'test'
-            else 'django.core.cache.backends.locmem.LocMemCache'
+    "default": {
+        "BACKEND": (
+            "django.core.cache.backends.dummy.DummyCache"
+            if _UNDER_TEST
+            else "django.core.cache.backends.filebased.FileBasedCache"
         ),
+        "LOCATION": str(_SUMMARY_CACHE_DIR),
     }
 }
 SUMMARY_CACHE_SECONDS = 24 * 60 * 60
